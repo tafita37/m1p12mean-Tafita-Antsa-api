@@ -25,13 +25,14 @@ router.post("/insertMultipleRole", async (req, res) => {
 
 // Inscription
 router.post("/registerUser", async (req, res) => {
-  const { username, email, password } = req.body;
+  const { nom, prenom, email, mdp } = req.body;
 
   try {
     const existingUser = await User.findOne({ email });
     if (existingUser)
       return res.status(400).json({ message: "L'utilisateur existe déjà." });
-
+    const roles = await Role.findOne({ niveau: 1 });
+    req.body.role = roles._id;
     const newUser = new User(req.body);
     await newUser.save();
     console.log("secret " + SECRET_KEY);
@@ -51,10 +52,11 @@ router.post("/registerUser", async (req, res) => {
 });
 
 // Route de connexion
-router.post("/loginUser", async (req, res) => {
+router.post("/loginUserClient", async (req, res) => {
   const { email, mdp } = req.body;
-  const users = await User.findOne({ email });
+  const users = await User.findOne({ email }).populate("role");
   if (!users) return res.status(400).json({ message: "Utilisateur non trouvé" });
+  if (users.role.niveau!=1) return res.status(400).json({ message: "Vous n'êtes pas client" });
   const isMatch = await bcrypt.compare(mdp, users.mdp);
   if (!isMatch)
     return res.status(400).json({ message: "Mot de passe incorrect" });
