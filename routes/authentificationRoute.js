@@ -68,7 +68,20 @@ router.post("/loginUserClient", async (req, res) => {
   res.json({ token });
 });
 
+// Route de connexion manager
+router.post("/loginManager", async (req, res) => {
+  const { email, mdp } = req.body;
+  const manager = await Manager.findOne({ email });
+  if (!manager) return res.status(400).json({ message: "Manageur non trouvé" });
+  const isMatch = await bcrypt.compare(mdp, manager.mdp);
+  if (!isMatch)
+    return res.status(400).json({ message: "Mot de passe incorrect" });
+  const token = jwt.sign({ id: manager.id, email: manager.email }, SECRET_KEY, {
+    expiresIn: "2h",
+  });
 
+  res.json({ token });
+});
 
 // Insertion de manager
 router.post("/newManager", async (req, res) => {
