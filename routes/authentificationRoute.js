@@ -6,6 +6,7 @@ const crypto = require("crypto");
 const SECRET_KEY = crypto.randomBytes(64).toString("hex");
 const Role = require("../models/Role");
 const User = require("../models/User");
+const Manager = require("../models/Manager");
 
 // API d'insertion de rôles multiples
 router.post("/insertMultipleRole", async (req, res) => {
@@ -23,8 +24,8 @@ router.post("/insertMultipleRole", async (req, res) => {
   }
 });
 
-// Inscription
-router.post("/registerUser", async (req, res) => {
+// Inscription client
+router.post("/registerUserClient", async (req, res) => {
   const { nom, prenom, email, mdp } = req.body;
 
   try {
@@ -51,7 +52,7 @@ router.post("/registerUser", async (req, res) => {
   }
 });
 
-// Route de connexion
+// Route de connexion client
 router.post("/loginUserClient", async (req, res) => {
   const { email, mdp } = req.body;
   const users = await User.findOne({ email }).populate("role");
@@ -67,9 +68,23 @@ router.post("/loginUserClient", async (req, res) => {
   res.json({ token });
 });
 
-// // Route protégée
-// router.get("/protected", verifyToken, (req, res) => {
-//   res.json({ message: "Accès autorisé", user: req.user });
-// });
+
+
+// Insertion de manager
+router.post("/newManager", async (req, res) => {
+  const { nom, prenom, email, mdp } = req.body;
+
+  try {
+    const existingManager = await Manager.findOne({ email });
+    if (existingManager)
+      return res.status(400).json({ message: "Il y a déjà un manager." });
+    const newManager = new Manager(req.body);
+    await newManager.save();
+    res.status(201).json({ message: "Manager créé avec succès."});
+  } catch (error) {
+    res.status(500).json({ message: "Erreur lors de l'inscription." });
+    console.error(error);
+  }
+});
 
 module.exports = router;
