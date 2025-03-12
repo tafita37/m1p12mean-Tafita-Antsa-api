@@ -7,6 +7,9 @@ const SECRET_KEY = crypto.randomBytes(64).toString("hex");
 const Role = require("../models/Role");
 const User = require("../models/User");
 const Manager = require("../models/Manager");
+const TypeClient = require("../models/TypeClient");
+const Client = require("../models/Client");
+const Mecanicien = require("../models/Mecanicien");
 
 // API d'insertion de rôles multiples
 router.post("/insertMultipleRole", async (req, res) => {
@@ -24,20 +27,37 @@ router.post("/insertMultipleRole", async (req, res) => {
   }
 });
 
+// API d'insertion de type de clients multiples
+router.post("/insertTypeClient", async (req, res) => {
+  try {
+    const typeClient = req.body;
+    if (!Array.isArray(typeClient) || typeClient.length === 0) {
+      return res.status(400).json({ message: "Aucun type client n'est fourni." });
+    }
+    const savedTypeClient = await TypeClient.insertMany(typeClient);
+    return res.status(201).json(savedTypeClient);
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ message: "Erreur lors de l'insertion des rôles." });
+  }
+});
+
 // Inscription client
 router.post("/registerUserClient", async (req, res) => {
   const { nom, prenom, email, mdp } = req.body;
 
   try {
     const existingUser = await User.findOne({ email });
+    const typeClient = await TypeClient.findOne({ reduction : 0 });
     if (existingUser)
       return res.status(400).json({ message: "L'utilisateur existe déjà." });
     const roles = await Role.findOne({ niveau: 1 });
     req.body.role = roles._id;
     const newUser = new User(req.body);
     await newUser.save();
-    console.log("secret " + SECRET_KEY);
-
+    const client = new Client({ user: newUser._id, typeClient: typeClient._id });
+    await client.save();
     const token = jwt.sign(
       { id: newUser._id, username: newUser.email, type: "user" },
       SECRET_KEY,
@@ -45,7 +65,7 @@ router.post("/registerUserClient", async (req, res) => {
         expiresIn: "2h",
       }
     );
-    res.status(201).json({ message: "Utilisateur créé avec succès.", token});
+    res.status(201).json({ message: "Votre compte a été créer. Veuillez attendre la validation.", token});
   } catch (error) {
     res.status(500).json({ message: "Erreur lors de l'inscription." });
     console.error(error);
@@ -61,6 +81,8 @@ router.post("/loginUserClient", async (req, res) => {
   const isMatch = await bcrypt.compare(mdp, users.mdp);
   if (!isMatch)
     return res.status(400).json({ message: "Mot de passe incorrect" });
+  if (users.dateValidation==null)
+    return res.status(403).json({ message: "Votre inscription n'a pas encore été validé." });
   const token = jwt.sign({ id: users.id, email: users.email }, SECRET_KEY, {
     expiresIn: "2h",
   });
@@ -96,6 +118,39 @@ router.post("/newManager", async (req, res) => {
     res.status(201).json({ message: "Manager créé avec succès."});
   } catch (error) {
     res.status(500).json({ message: "Erreur lors de l'inscription." });
+    console.error(error);
+  }
+});
+
+// Inscription mécanicien
+router.post("/registerUserMecanicien", async (req, res) => {
+  const { nom, prenom, email, mdp } = req.body;
+  try {
+    const existingUser = await User.findOne({ email });
+    if (existingUser)
+      return res.status(400).json({ message: "L'utilisateur existe déjà." });
+    const roles = await Role.findOne({ niveau: 10 });
+    req.body.role = roles._id;
+    const newUser = new User(req.body);
+    await newUser.save();
+    const mecanicien = new Mecanicien({
+      user: newUser._id,
+      dateEmbauche: req.body.dateEmbauche,
+      dateRenvoie : null
+    });
+    await mecanicien.save();
+    const token = jwt.sign(
+      { id: newUser._id, username: newUser.email, type: "user" },
+      SECRET_KEY,
+      {
+        expiresIn: "2h",
+      }
+    );
+    res.status(201).json({ message: "Mécanicien créé avec succès.", token });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Erreur lors de la création de mécanicien." });
     console.error(error);
   }
 });
