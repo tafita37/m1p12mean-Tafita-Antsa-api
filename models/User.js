@@ -30,6 +30,10 @@ const UserSchema = new mongoose.Schema(
       ref: "Role",
       required: [true, "Le rôle est requis."],
     },
+    dateValidation: {
+      type: Date,
+      default: null, // Champ nullable par défaut
+    },
   },
   { timestamps: true }
 );

@@ -1,28 +1,27 @@
-// Insertion de mécanicien
-// router.post("/insertMecanicien", async (req, res) => {
-//   const { username, email, password } = req.body;
+const express = require("express");
+const jwt = require("jsonwebtoken");
+const router = express.Router();
+const crypto = require("crypto");
+const SECRET_KEY = crypto.randomBytes(64).toString("hex");
+const Role = require("../models/Role");
+const User = require("../models/User");
 
-//   try {
-//     const existingUser = await User.findOne({ email });
-//     if (existingUser)
-//       return res.status(400).json({ message: "L'utilisateur existe déjà." });
+// Inscription mécanicien
+router.post("/insertMecanicien", async (req, res) => {
+  const { nom, prenom, email, mdp } = req.body;
 
-//     const newUser = new User(req.body);
-//     await newUser.save();
-//     console.log("secret " + SECRET_KEY);
-
-//     const token = jwt.sign(
-//       { id: newUser._id, username: newUser.email, type: "user" },
-//       SECRET_KEY,
-//       {
-//         expiresIn: "2h",
-//       }
-//     );
-//     res.status(201).json({ message: "Utilisateur créé avec succès.", token});
-//   } catch (error) {
-//     res.status(500).json({ message: "Erreur lors de l'inscription." });
-//     console.error(error);
-//   }
-// });
-
-// module.exports = router;
+  try {
+    const existingUser = await User.findOne({ email });
+    if (existingUser)
+      return res.status(400).json({ message: "L'utilisateur existe déjà." });
+    const roles = await Role.findOne({ niveau: 10 });
+    req.body.role = roles._id;
+    const newUser = new User(req.body);
+    await newUser.save();
+    console.log("secret " + SECRET_KEY);
+    res.status(201).json({ message: "Mécanicien créé avec succès."});
+  } catch (error) {
+    res.status(500).json({ message: "Erreur lors de la création de mécanicien." });
+    console.error(error);
+  }
+});
