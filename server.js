@@ -1,6 +1,7 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
+const verifyToken = require("./middlewares/auth"); 
 require("dotenv").config();
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -18,4 +19,5 @@ mongoose
 // Routes 
 app.use('/articles', require('./routes/articleRoutes')); 
 app.use("/auth", require("./routes/authentificationRoute")); 
+app.use("/manager", verifyToken, require("./routes/managerRoute")); 
 app.listen(PORT, () => console.log(`Serveur démarré sur le port ${PORT}`)); 

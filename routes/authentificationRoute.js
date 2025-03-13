@@ -3,13 +3,15 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const router = express.Router();
 const crypto = require("crypto");
-const SECRET_KEY = crypto.randomBytes(64).toString("hex");
 const Role = require("../models/Role");
 const User = require("../models/User");
 const Manager = require("../models/Manager");
 const TypeClient = require("../models/TypeClient");
 const Client = require("../models/Client");
 const Mecanicien = require("../models/Mecanicien");
+const SECRET_KEY_CLIENT = process.env.SECRET_KEY_CLIENT;
+const SECRET_KEY_MANAGER = process.env.SECRET_KEY_MANAGER;
+const SECRET_KEY_MECANICIEN = process.env.SECRET_KEY_MECANICIEN;
 
 // API d'insertion de rôles multiples
 router.post("/insertMultipleRole", async (req, res) => {
@@ -58,14 +60,7 @@ router.post("/registerUserClient", async (req, res) => {
     await newUser.save();
     const client = new Client({ user: newUser._id, typeClient: typeClient._id });
     await client.save();
-    const token = jwt.sign(
-      { id: newUser._id, username: newUser.email, type: "user" },
-      SECRET_KEY,
-      {
-        expiresIn: "2h",
-      }
-    );
-    res.status(201).json({ message: "Votre compte a été créer. Veuillez attendre la validation.", token});
+    res.status(201).json({ message: "Votre compte a été créer. Veuillez attendre la validation."});
   } catch (error) {
     res.status(500).json({ message: "Erreur lors de l'inscription." });
     console.error(error);
@@ -83,9 +78,35 @@ router.post("/loginUserClient", async (req, res) => {
     return res.status(400).json({ message: "Mot de passe incorrect" });
   if (users.dateValidation==null)
     return res.status(403).json({ message: "Votre inscription n'a pas encore été validé." });
-  const token = jwt.sign({ id: users.id, email: users.email }, SECRET_KEY, {
-    expiresIn: "2h",
-  });
+  const token = jwt.sign(
+    { id: users.id, email: users.email, type: "client" },
+    SECRET_KEY_CLIENT,
+    {
+      expiresIn: "2h",
+    }
+  );
+
+  res.json({ token });
+});
+
+// Route de connexion mecanicien
+router.post("/loginUserMecanicien", async (req, res) => {
+  const { email, mdp } = req.body;
+  const users = await User.findOne({ email }).populate("role");
+  if (!users) return res.status(400).json({ message: "Utilisateur non trouvé" });
+  if (users.role.niveau!=10) return res.status(400).json({ message: "Vous n'êtes pas mécanicien" });
+  const isMatch = await bcrypt.compare(mdp, users.mdp);
+  if (!isMatch)
+    return res.status(400).json({ message: "Mot de passe incorrect" });
+  if (users.dateValidation==null)
+    return res.status(403).json({ message: "Votre inscription n'a pas encore été validé." });
+  const token = jwt.sign(
+    { id: users.id, email: users.email, type: "mecanicien" },
+    SECRET_KEY_MECANICIEN,
+    {
+      expiresIn: "2h",
+    }
+  );
 
   res.json({ token });
 });
@@ -98,7 +119,7 @@ router.post("/loginManager", async (req, res) => {
   const isMatch = await bcrypt.compare(mdp, manager.mdp);
   if (!isMatch)
     return res.status(400).json({ message: "Mot de passe incorrect" });
-  const token = jwt.sign({ id: manager.id, email: manager.email }, SECRET_KEY, {
+  const token = jwt.sign({ id: manager.id, email: manager.email, type : "manager" }, SECRET_KEY_MANAGER, {
     expiresIn: "2h",
   });
 
@@ -139,14 +160,11 @@ router.post("/registerUserMecanicien", async (req, res) => {
       dateRenvoie : null
     });
     await mecanicien.save();
-    const token = jwt.sign(
-      { id: newUser._id, username: newUser.email, type: "user" },
-      SECRET_KEY,
-      {
-        expiresIn: "2h",
-      }
-    );
-    res.status(201).json({ message: "Mécanicien créé avec succès.", token });
+    res
+      .status(201)
+      .json({
+        message: "Votre compte a été créer. Veuillez attendre la validation.",
+      });
   } catch (error) {
     res
       .status(500)
