@@ -38,6 +38,18 @@ const UserSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// Définir un champ virtuel pour les clients
+UserSchema.virtual("client", {
+  ref: "Client",
+  localField: "_id",
+  foreignField: "user",
+  justOne: true // Mettre à false si un utilisateur peut avoir plusieurs clients
+});
+
+// Activer les champs virtuels dans les résultats JSON
+UserSchema.set("toObject", { virtuals: true });
+UserSchema.set("toJSON", { virtuals: true });
+
 UserSchema.pre("save", async function (next) {
   if (!this.isModified("mdp")) return next();
   this.mdp = await bcrypt.hash(this.mdp, 10);

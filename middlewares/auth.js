@@ -5,11 +5,8 @@ const SECRET_KEY_MANAGER = process.env.SECRET_KEY_MANAGER;
 
 // Middleware de vérification de manager
 const verifyManager = function (req, res, next) {
-  console.log(SECRET_KEY_MANAGER, "secret");
-  
-  const token = req.header("Authorization").replace("Bearer ", "");
-  console.log(token);
-  
+  var token = req.header("Authorization") ;
+  token = token ? token.replace("Bearer ", "") : "";
   if (!token)
     return res.status(401).json({ message: "Accès refusé, token manquant" });
   try {

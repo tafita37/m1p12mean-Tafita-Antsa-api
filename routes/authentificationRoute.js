@@ -51,7 +51,7 @@ router.post("/registerUserClient", async (req, res) => {
 
   try {
     const existingUser = await User.findOne({ email });
-    const typeClient = await TypeClient.findOne({ reduction : 0 });
+    const typeClient = await TypeClient.findOne({ reduction: 0 });
     if (existingUser)
       return res.status(400).json({ message: "L'utilisateur existe déjà." });
     const roles = await Role.findOne({ niveau: 1 });
@@ -160,6 +160,14 @@ router.post("/registerUserMecanicien", async (req, res) => {
       dateRenvoie : null
     });
     await mecanicien.save();
+    const employeType = await TypeClient.findOne({
+      nom: { $regex: "^Employé$", $options: "i" },
+    });
+    const newClient = new Client({
+      user: newUser._id,
+      typeClient: employeType._id,
+    });
+    await newClient.save();
     res
       .status(201)
       .json({
