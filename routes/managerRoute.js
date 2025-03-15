@@ -4,6 +4,7 @@ const User = require("../models/User");
 const Mecanicien = require("../models/Mecanicien");
 const Client = require("../models/Client");
 const TypeClient = require("../models/TypeClient");
+const Piece = require("../models/Piece");
 
 // Inscription mécanicien
 router.get("/allUserNotValider", async (req, res) => {
@@ -71,8 +72,6 @@ router.post("/validerInscription", async (req, res) => {
   }
 });
 
-
-
 // Refus de l'inscription utilisateur et mécanicien
 router.post("/refuserInscription", async (req, res) => {
   try {
@@ -91,5 +90,7 @@ router.post("/refuserInscription", async (req, res) => {
     console.error(error);
   }
 });
+
+router.use("/piece", require("./manager/pieceRoutes"));
 
 module.exports = router;
