@@ -7,6 +7,7 @@ const TypeClientSchema = new mongoose.Schema(
       type: String,
       required: [true, "Le nom est requis."],
       trim: true,
+      unique : true
     },
     reduction: {
       type: Number,
