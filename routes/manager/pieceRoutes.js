@@ -65,4 +65,6 @@ router.get("/allPiece", async (req, res) => {
   }
 });
 
+router.use("/details", require("./piece/pieceDetailRoutes"));
+
 module.exports = router;

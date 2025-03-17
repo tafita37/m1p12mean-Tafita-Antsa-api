@@ -56,7 +56,7 @@ router.get("/allMarque", async (req, res) => {
     const listMarque = await Marque.find()
       .skip(skip)
       .limit(size);
-    res.status(200).json({ pieces: listMarque, nbPiece: total });
+    res.status(200).json({ marques: listMarque, nbMarque: total });
   } catch (error) {
     res.status(500).json({ message: "Erreur." });
     console.error(error);
