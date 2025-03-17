@@ -92,5 +92,6 @@ router.post("/refuserInscription", async (req, res) => {
 });
 
 router.use("/piece", require("./manager/pieceRoutes"));
+router.use("/marque", require("./manager/marqueRoutes"));
 
 module.exports = router;
