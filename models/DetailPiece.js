@@ -24,4 +24,6 @@ const DetailPieceSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+DetailPieceSchema.index({ piece: 1, marque: 1 }, { unique: true });
+
 module.exports = mongoose.model("DetailPiece", DetailPieceSchema);

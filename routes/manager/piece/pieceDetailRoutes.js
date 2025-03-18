@@ -1,6 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const DetailPiece = require("../../../models/DetailPiece");
+const Marque = require("../../../models/Marque");
+const Piece = require("../../../models/Piece");
 
 // Insertion de détails de pieces
 router.post("/insert", async (req, res) => {
@@ -60,10 +62,12 @@ router.get("/allDetailPiece", async (req, res) => {
     const size = 20;
     const skip = (page - 1) * size;
     const total = await DetailPiece.countDocuments();
+    const marques = await Marque.find();
+    const pieces = await Piece.find();
     const listDetailPiece = await DetailPiece.find().populate("piece").populate("marque")
       .skip(skip)
       .limit(size);
-    res.status(200).json({ detailPieces: listDetailPiece, nbDetailsPiece: total });
+    res.status(200).json({ detailPieces: listDetailPiece, nbDetailsPiece: total, marques : marques, pieces : pieces });
   } catch (error) {
     res.status(500).json({ message: "Erreur." });
     console.error(error);
