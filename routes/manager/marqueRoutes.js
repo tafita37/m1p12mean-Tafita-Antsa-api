@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const Marque = require("../../models/Marque");
+const DetailPiece = require("../../models/DetailPiece");
 
 // Insertion de marque
 router.post("/insert", async (req, res) => {
@@ -38,6 +39,18 @@ router.post("/delete", async (req, res) => {
       return res.status(400).json({ message: "Liste d'ID invalide." });
     }
 
+    // Vérifier si une des marques est utilisée dans DetailPiece
+    const count = await DetailPiece.countDocuments({
+      marque: { $in: idMarques },
+    });
+
+    if (count > 0) {
+      return res.status(400).json({
+        message:
+          "Impossible de supprimer ces marques.",
+      });
+    }
+
     await Marque.deleteMany({ _id: { $in: idMarques } });
     res.status(200).json({ message: "Marque supprimées avec succès." });
   } catch (error) {
@@ -56,7 +69,7 @@ router.get("/allMarque", async (req, res) => {
     const listMarque = await Marque.find()
       .skip(skip)
       .limit(size);
-    res.status(200).json({ pieces: listMarque, nbPiece: total });
+    res.status(200).json({ marques: listMarque, nbMarque: total });
   } catch (error) {
     res.status(500).json({ message: "Erreur." });
     console.error(error);

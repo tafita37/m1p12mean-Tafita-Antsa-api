@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const Piece = require("../../models/Piece");
+const DetailPiece = require("../../models/DetailPiece");
 
 // Insertion de piece
 router.post("/insert", async (req, res) => {
@@ -25,7 +26,9 @@ router.post("/update", async (req, res) => {
     await pieces.save();
     res.status(201).json({ message: "Pièce modifiée." });
   } catch (error) {
-    res.status(500).json({ message: "Erreur lors de la modification de pièce." });
+    res
+      .status(500)
+      .json({ message: "Erreur lors de la modification de pièce." });
     console.error(error);
   }
 });
@@ -38,10 +41,23 @@ router.post("/delete", async (req, res) => {
       return res.status(400).json({ message: "Liste d'ID invalide." });
     }
 
+    // Vérifier si une des marques est utilisée dans DetailPiece
+    const count = await DetailPiece.countDocuments({
+      piece: { $in: idPieces },
+    });
+
+    if (count > 0) {
+      return res.status(400).json({
+        message: "Impossible de supprimer ces pièces.",
+      });
+    }
+
     await Piece.deleteMany({ _id: { $in: idPieces } });
     res.status(200).json({ message: "Pièces supprimées avec succès." });
   } catch (error) {
-    res.status(500).json({ message: "Erreur lors de la suppression des pièces." });
+    res
+      .status(500)
+      .json({ message: "Erreur lors de la suppression des pièces." });
     console.error(error);
   }
 });
@@ -53,16 +69,14 @@ router.get("/allPiece", async (req, res) => {
     const size = 20;
     const skip = (page - 1) * size;
     const total = await Piece.countDocuments();
-    const listPiece = await Piece.find()
-      .skip(skip)
-      .limit(size);
-    res
-      .status(200)
-      .json({ pieces: listPiece, nbPiece: total });
+    const listPiece = await Piece.find().skip(skip).limit(size);
+    res.status(200).json({ pieces: listPiece, nbPiece: total });
   } catch (error) {
     res.status(500).json({ message: "Erreur." });
     console.error(error);
   }
 });
+
+router.use("/details", require("./piece/pieceDetailRoutes"));
 
 module.exports = router;
