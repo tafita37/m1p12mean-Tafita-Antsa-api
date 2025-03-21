@@ -9,10 +9,8 @@ router.post("/insert", async (req, res) => {
   try {
     const idPiece = req.body.idPiece;
     const idMarque = req.body.idMarque;
-    const prixAchat = req.body.prixAchat;
-    const prixVente = req.body.prixVente;
     const pieceDetail = new DetailPiece(
-        { piece: idPiece, marque: idMarque, prixAchat: prixAchat, prixVente: prixVente }
+        { piece: idPiece, marque: idMarque }
     );
     await pieceDetail.save();
     res.status(201).json({ message: "Détails de pièce inséré." });
@@ -26,11 +24,7 @@ router.post("/insert", async (req, res) => {
 router.post("/update", async (req, res) => {
   try {
     const idDetailPiece = req.body.idDetailPiece;
-    const prixAchat = req.body.prixAchat;
-    const prixVente = req.body.prixVente;
-    const pieceDetail = await DetailPiece.findById(idDetailPiece);
-    pieceDetail.prixAchat = prixAchat;    
-    pieceDetail.prixVente = prixVente;
+    const pieceDetail = await DetailPiece.findById(idDetailPiece);  
     await pieceDetail.save();
     res.status(201).json({ message: "Détails de pièce modifié." });
   } catch (error) {
