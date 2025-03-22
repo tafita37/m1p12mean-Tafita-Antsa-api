@@ -325,4 +325,54 @@ router.get("/allDataStock", async (req, res) => {
   }
 });
 
+// Liste des mouvements d'une détail pièce
+router.get("/listeMouvement", async (req, res) => {
+  try {
+    const idDetailPiece = req.query.idDetailPiece;
+    const dateMouvement = req.query.dateMouvement
+      ? new Date(req.query.dateMouvement)
+      : new Date();
+    const page = parseInt(req.query.page) || 1;
+    const size = 20;
+    const skip = (page - 1) * size;
+    const listMouvements = await Mouvement.find({
+      detailPiece: idDetailPiece,
+      $expr: {
+        $lte: [
+          { $dateToString: { format: "%Y-%m-%d", date: "$dateMouvement" } }, // Convertit la date stockée en YYYY-MM-DD
+          dateMouvement.toISOString().split("T")[0], // Transforme la date donnée en chaîne "YYYY-MM-DD"
+        ],
+      },
+    })
+      .populate({
+        path: "detailPiece",
+        populate: [{ path: "marque" }, { path: "piece" }],
+      })
+      .populate("fournisseur")
+      .populate({
+        path: "utilisateur",
+        populate: {
+          path: "role",
+        },
+        select: "-mdp", 
+      })
+      .sort({ dateMouvement: -1 })
+      .skip(skip)
+      .limit(size);
+    const total = await Mouvement.countDocuments({
+      detailPiece: idDetailPiece,
+      $expr: {
+        $lte: [
+          { $dateToString: { format: "%Y-%m-%d", date: "$dateMouvement" } }, // Convertit la date stockée en YYYY-MM-DD
+          dateMouvement.toISOString().split("T")[0], // Transforme la date donnée en chaîne "YYYY-MM-DD"
+        ],
+      },
+    });
+    res.status(200).json({ mouvements: listMouvements, nbMouvements: total });
+  } catch (error) {
+    res.status(500).json({ message: "Erreur." });
+    console.error(error);
+  }
+});
+
 module.exports = router;
