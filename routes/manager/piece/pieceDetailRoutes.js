@@ -13,10 +13,10 @@ router.post("/insert", async (req, res) => {
         { piece: idPiece, marque: idMarque }
     );
     await pieceDetail.save();
-    res.status(201).json({ message: "Détails de pièce inséré." });
+    return res.status(201).json({ message: "Détails de pièce inséré." });
   } catch (error) {
-    res.status(500).json({ message: "Erreur lors de l'insertion de pièce." });
     console.error(error);
+    return res.status(500).json({ message: "Erreur lors de l'insertion de pièce." });
   }
 });
 
@@ -26,10 +26,10 @@ router.post("/update", async (req, res) => {
     const idDetailPiece = req.body.idDetailPiece;
     const pieceDetail = await DetailPiece.findById(idDetailPiece);  
     await pieceDetail.save();
-    res.status(201).json({ message: "Détails de pièce modifié." });
+    return res.status(201).json({ message: "Détails de pièce modifié." });
   } catch (error) {
-    res.status(500).json({ message: "Erreur lors de la modification." });
     console.error(error);
+    return res.status(500).json({ message: "Erreur lors de la modification." });
   }
 });
 
@@ -42,10 +42,10 @@ router.post("/delete", async (req, res) => {
     }
 
     await DetailPiece.deleteMany({ _id: { $in: idDetailPieces } });
-    res.status(200).json({ message: "Détails de pièces supprimées avec succès." });
+    return res.status(200).json({ message: "Détails de pièces supprimées avec succès." });
   } catch (error) {
-    res.status(500).json({ message: "Erreur lors de la suppression des pièces." });
     console.error(error);
+    return res.status(500).json({ message: "Erreur lors de la suppression des pièces." });
   }
 });
 
@@ -61,10 +61,10 @@ router.get("/allDetailPiece", async (req, res) => {
     const listDetailPiece = await DetailPiece.find().populate("piece").populate("marque")
       .skip(skip)
       .limit(size);
-    res.status(200).json({ detailPieces: listDetailPiece, nbDetailsPiece: total, marques : marques, pieces : pieces });
+    return res.status(200).json({ detailPieces: listDetailPiece, nbDetailsPiece: total, marques : marques, pieces : pieces });
   } catch (error) {
-    res.status(500).json({ message: "Erreur." });
     console.error(error);
+    return res.status(500).json({ message: "Erreur." });
   }
 });
 

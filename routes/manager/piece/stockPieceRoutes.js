@@ -311,7 +311,7 @@ router.get("/allDataStock", async (req, res) => {
     ]);
 
     const allFournisseur = await Fournisseur.find();
-    res.status(200).json({
+    return res.status(200).json({
       stock: result,
       nbStock: total,
       pieces: allPiece,
@@ -320,59 +320,107 @@ router.get("/allDataStock", async (req, res) => {
       fournisseurs: allFournisseur,
     });
   } catch (error) {
-    res.status(500).json({ message: "Erreur." });
     console.error(error);
+    return res.status(500).json({ message: "Erreur." });
   }
 });
 
-// Liste des mouvements d'une détail pièce
 router.get("/listeMouvement", async (req, res) => {
   try {
     const idDetailPiece = req.query.idDetailPiece;
-    const dateMouvement = req.query.dateMouvement
-      ? new Date(req.query.dateMouvement)
-      : new Date();
+    const detailPiece = await DetailPiece.findById(idDetailPiece)
+      .populate("marque")
+      .populate("piece");
+
+    const dateFin =
+      req.query.dateFin && req.query.dateFin !="null"
+        ? new Date(req.query.dateFin)
+        : null;
+    const dateDebut =
+      req.query.dateDebut && req.query.dateDebut != "null"
+        ? new Date(req.query.dateDebut)
+        : null;
+    const typeMouvement = parseInt(req.query.typeMouvement) || 0; 
+    
+
     const page = parseInt(req.query.page) || 1;
     const size = 20;
     const skip = (page - 1) * size;
-    const listMouvements = await Mouvement.find({
-      detailPiece: idDetailPiece,
-      $expr: {
-        $lte: [
-          { $dateToString: { format: "%Y-%m-%d", date: "$dateMouvement" } }, // Convertit la date stockée en YYYY-MM-DD
-          dateMouvement.toISOString().split("T")[0], // Transforme la date donnée en chaîne "YYYY-MM-DD"
+
+    // Définition des conditions de recherche
+    const conditions = { detailPiece: idDetailPiece };
+
+    if (dateDebut && !dateFin) {
+      // Cas 1: Si dateDebut est défini, mais pas dateFin
+      conditions["$expr"] = {
+        $gte: [
+          { $dateToString: { format: "%Y-%m-%d", date: "$dateMouvement" } },
+          dateDebut.toISOString().split("T")[0],
         ],
-      },
-    })
-      .populate({
-        path: "detailPiece",
-        populate: [{ path: "marque" }, { path: "piece" }],
-      })
+      };
+    } else if (!dateDebut && dateFin) {
+      // Cas 2: Si dateFin est défini, mais pas dateDebut
+      conditions["$expr"] = {
+        $lte: [
+          { $dateToString: { format: "%Y-%m-%d", date: "$dateMouvement" } },
+          dateFin.toISOString().split("T")[0],
+        ],
+      };
+    } else if (dateDebut && dateFin) {
+      // Cas 3: Si dateDebut et dateFin sont définis
+      conditions["$expr"] = {
+        $and: [
+          {
+            $gte: [
+              { $dateToString: { format: "%Y-%m-%d", date: "$dateMouvement" } },
+              dateDebut.toISOString().split("T")[0],
+            ],
+          },
+          {
+            $lte: [
+              { $dateToString: { format: "%Y-%m-%d", date: "$dateMouvement" } },
+              dateFin.toISOString().split("T")[0],
+            ],
+          },
+        ],
+      };
+    }
+
+    if (typeMouvement === 1) {
+      conditions["isEntree"] = true;
+    } else if (typeMouvement === -1) {
+      conditions["isEntree"] = false;
+    }
+
+    // Exécution de la recherche
+    const listMouvements = await Mouvement.find(conditions)
       .populate("fournisseur")
       .populate({
         path: "utilisateur",
         populate: {
           path: "role",
         },
-        select: "-mdp", 
+        select: "-mdp",
       })
       .sort({ dateMouvement: -1 })
       .skip(skip)
       .limit(size);
-    const total = await Mouvement.countDocuments({
-      detailPiece: idDetailPiece,
-      $expr: {
-        $lte: [
-          { $dateToString: { format: "%Y-%m-%d", date: "$dateMouvement" } }, // Convertit la date stockée en YYYY-MM-DD
-          dateMouvement.toISOString().split("T")[0], // Transforme la date donnée en chaîne "YYYY-MM-DD"
-        ],
-      },
-    });
-    res.status(200).json({ mouvements: listMouvements, nbMouvements: total });
+
+    // Comptage des documents
+    const total = await Mouvement.countDocuments(conditions);
+
+    return res
+      .status(200)
+      .json({
+        detailPiece: detailPiece,
+        mouvements: listMouvements,
+        nbMouvements: total,
+      });
   } catch (error) {
-    res.status(500).json({ message: "Erreur." });
     console.error(error);
+    return res.status(500).json({ message: "Erreur." });
   }
 });
+
 
 module.exports = router;

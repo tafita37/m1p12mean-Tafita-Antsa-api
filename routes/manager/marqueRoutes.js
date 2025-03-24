@@ -9,10 +9,10 @@ router.post("/insert", async (req, res) => {
     const nom = req.body.nom;
     const marques = new Marque({ nom: nom });
     await marques.save();
-    res.status(201).json({ message: "Marque insérée." });
+    return res.status(201).json({ message: "Marque insérée." });
   } catch (error) {
-    res.status(500).json({ message: "Erreur lors de l'insertion de marque." });
     console.error(error);
+    return res.status(500).json({ message: "Erreur lors de l'insertion de marque." });
   }
 });
 
@@ -24,10 +24,10 @@ router.post("/update", async (req, res) => {
     const marques = await Marque.findById(idMarque);
     marques.nom = nom;
     await marques.save();
-    res.status(201).json({ message: "Marque modifiée." });
+    return res.status(201).json({ message: "Marque modifiée." });
   } catch (error) {
-    res.status(500).json({ message: "Erreur lors de la modification de marque." });
     console.error(error);
+    return res.status(500).json({ message: "Erreur lors de la modification de marque." });
   }
 });
 
@@ -52,10 +52,10 @@ router.post("/delete", async (req, res) => {
     }
 
     await Marque.deleteMany({ _id: { $in: idMarques } });
-    res.status(200).json({ message: "Marque supprimées avec succès." });
+    return res.status(200).json({ message: "Marque supprimées avec succès." });
   } catch (error) {
-    res.status(500).json({ message: "Erreur lors de la suppression des marques." });
     console.error(error);
+    return res.status(500).json({ message: "Erreur lors de la suppression des marques." });
   }
 });
 
@@ -69,10 +69,10 @@ router.get("/allMarque", async (req, res) => {
     const listMarque = await Marque.find()
       .skip(skip)
       .limit(size);
-    res.status(200).json({ marques: listMarque, nbMarque: total });
+    return res.status(200).json({ marques: listMarque, nbMarque: total });
   } catch (error) {
-    res.status(500).json({ message: "Erreur." });
     console.error(error);
+    return res.status(500).json({ message: "Erreur." });
   }
 });
 
