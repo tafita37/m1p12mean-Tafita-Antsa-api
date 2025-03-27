@@ -34,6 +34,10 @@ const UserSchema = new mongoose.Schema(
       type: Date,
       default: null, // Champ nullable par défaut
     },
+    dateSuppression: {
+      type: Date,
+      default: null, // Champ nullable par défaut
+    },
   },
   { timestamps: true }
 );

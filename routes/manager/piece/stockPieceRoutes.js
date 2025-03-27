@@ -30,6 +30,11 @@ router.post("/insert", async (req, res) => {
         message: "Veuillez d'abord valider l'inscription de cet utilisateur.",
       });
     }
+    if (user.dateSuppression == null) {
+      return res.status(500).json({
+        message: "L'utilisateur a été supprimée.",
+      });
+    }
     const idFournisseur = req.body.idFournisseur;
     const prix = req.body.prix;
     var nb = req.body.nb;
