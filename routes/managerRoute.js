@@ -102,7 +102,6 @@ router.post("/refuserInscription", async (req, res) => {
 router.use("/piece", require("./manager/pieceRoutes"));
 router.use("/marque", require("./manager/marqueRoutes"));
 router.use("/fournisseur", require("./manager/fournisseurRoutes"));
-router.use("/stat", require("./manager/statRoutes"));
 router.use("/user", require("./manager/userRoutes"));
 
 module.exports = router;
