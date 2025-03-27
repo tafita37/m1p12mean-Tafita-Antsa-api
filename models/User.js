@@ -50,6 +50,14 @@ UserSchema.virtual("client", {
   justOne: true // Mettre à false si un utilisateur peut avoir plusieurs clients
 });
 
+// Définir un champ virtuel pour les mécaniciens
+UserSchema.virtual("mecanicien", {
+  ref: "Mecanicien",
+  localField: "_id",
+  foreignField: "user",
+  justOne: true // Mettre à false si un utilisateur peut avoir plusieurs clients
+});
+
 // Activer les champs virtuels dans les résultats JSON
 UserSchema.set("toObject", { virtuals: true });
 UserSchema.set("toJSON", { virtuals: true });
