@@ -1,5 +1,8 @@
 const express = require("express");
 const User = require("../../models/User");
+const TypeClient = require("../../models/TypeClient");
+const Mecanicien = require("../../models/Mecanicien");
+const Client = require("../../models/Client");
 const router = express.Router();
 
 // Liste des utilisateurs
@@ -21,9 +24,18 @@ router.get("/allUser", async (req, res) => {
       .select("-mdp")
       .populate([
         { path: "role" },
-        { path: "client" }, // Assure-toi que le champ virtuel `client` est bien défini
+        {
+          path: "client",
+          // populate: {
+          //   path: "typeClient", // Récupérer aussi la table TypeClient
+          // },
+        }, // Assure-toi que le champ virtuel `client` est bien défini
+        { path: "mecanicien" }, // Assure-toi que le champ virtuel `client` est bien défini
       ]);
-    return res.status(200).json({ users: listUser, nbUser: total });
+    const listTypeClients = await TypeClient.find();
+    return res
+      .status(200)
+      .json({ users: listUser, nbUser: total, typeClients: listTypeClients });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Erreur." });
@@ -37,7 +49,9 @@ router.post("/update", async (req, res) => {
     const nom = req.body.nom;
     const prenom = req.body.prenom;
     const email = req.body.email;
-    const users = await User.findById(idUser);
+    const dateEmbauche = req.body.other.dateEmbauche;
+    const typeClient = req.body.other.typeClient;
+    const users = await User.findById(idUser).populate("role");
     if(users.dateSuppression != null) {
       return res.status(500).json({ message: "L'utilisateur a été supprimé." });
     }
@@ -45,6 +59,20 @@ router.post("/update", async (req, res) => {
     users.prenom = prenom;
     users.email = email;
     await users.save();
+    if (users.role.niveau == 10) {
+      const mecanicien = await Mecanicien.findOne({ user: idUser });
+      mecanicien.dateEmbauche = dateEmbauche;
+      await mecanicien.save();
+    } else {
+      const client = await Client.findOne({ user: idUser });
+      client.typeClient = typeClient;
+      await client.save();
+    }
+    if (users.role.niveau == 1) {
+      const client = await Client.findOne({ user: idUser });
+      client.typeClient = typeClient;
+      await client.save();
+    }
     return res.status(201).json({ message: "Utilisateur modifiée." });
   } catch (error) {
     console.error(error);
@@ -63,6 +91,10 @@ router.post("/delete", async (req, res) => {
     }
 
     await User.updateMany({ _id: { $in: idUsers } }, { dateSuppression: new Date() });
+    await Mecanicien.updateMany(
+      { user: { $in: idUsers } },
+      { dateRenvoie: new Date() }
+    );
     return res.status(200).json({ message: "Utilisateurs supprimées avec succès." });
   } catch (error) {
     console.error(error);
