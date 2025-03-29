@@ -51,75 +51,77 @@ router.post("/insert", async (req, res) => {
     if (dateMouvement) {
       mouvementInsert.dateMouvement = new Date(dateMouvement);
     }
-      if (!isEntree) {
-        const listMouvementEntree = await Mouvement.aggregate([
-          {
-            $match: {
-              isEntree: true,
-              detailPiece: detailPiece._id,
-              $expr: { $lt: ["$sortie", "$nb"] },
-            },
+    if (!isEntree) {
+      const listMouvementEntree = await Mouvement.aggregate([
+        {
+          $match: {
+            isEntree: true,
+            detailPiece: detailPiece._id,
+            $expr: { $lt: ["$sortie", "$nb"] },
           },
-          {
-            $sort: { dateMouvement: -1 }, // Trie directement en base de données par dateMouvement décroissant
+        },
+        {
+          $sort: { dateMouvement: -1 }, // Trie directement en base de données par dateMouvement décroissant
+        },
+      ]);
+      const resteStock = await Mouvement.aggregate([
+        {
+          $match: {
+            isEntree: true,
+            detailPiece: detailPiece._id,
+            $expr: { $lt: ["$sortie", "$nb"] }, // Filtre les entrées où sortie < nb
           },
-        ]);
-        const resteStock = await Mouvement.aggregate([
-          {
-            $match: {
-              isEntree: true,
-              detailPiece: detailPiece._id,
-              $expr: { $lt: ["$sortie", "$nb"] }, // Filtre les entrées où sortie < nb
-            },
+        },
+        {
+          $group: {
+            _id: null, // Pas besoin de regrouper par un champ spécifique
+            totalDisponible: { $sum: { $subtract: ["$nb", "$sortie"] } }, // Calcule nb - sortie et fait la somme
           },
-          {
-            $group: {
-              _id: null, // Pas besoin de regrouper par un champ spécifique
-              totalDisponible: { $sum: { $subtract: ["$nb", "$sortie"] } }, // Calcule nb - sortie et fait la somme
-            },
-          },
-        ]);
-        if (resteStock.length == 0 || resteStock[0].totalDisponible < nb) {
-          return res.status(500).json({ message: "Stock insuffisant." });
-        }
-        await mouvementInsert.save();
-        for (const mouvement of listMouvementEntree) {
-          if (nb == 0) break;
-
-          if (mouvement.nb - mouvement.sortie != 0) {
-            var reste = mouvement.nb - mouvement.sortie;
-            var mouvementDetail = new MouvementDetail({
-              mouvementEntree: mouvement._id,
-              mouvementSortie: mouvementInsert._id,
-            });
-            if (nb <= reste) {
-              mouvementDetail.nb = nb;
-              mouvement.sortie += nb;
-              nb = 0;
-            } else {
-              mouvement.sortie = mouvement.nb;
-              nb -= reste;
-              mouvementDetail.nb = reste;
-            }
-            move = await Mouvement.findById(mouvement._id);
-            move.detailPiece = mouvement.detailPiece;
-            move.utilisateur = mouvement.utilisateur;
-            move.fournisseur = mouvement.fournisseur;
-            move.prix = mouvement.prix;
-            move.nb = mouvement.nb;
-            move.sortie = mouvement.sortie;
-            move.isEntree = mouvement.isEntree;
-            await move.save();
-            mouvementDetail.save();
-          }
-        }
-      } else {
-        await mouvementInsert.save();
+        },
+      ]);
+      if (resteStock.length == 0 || resteStock[0].totalDisponible < nb) {
+        return res.status(500).json({ message: "Stock insuffisant." });
       }
+      await mouvementInsert.save();
+      for (const mouvement of listMouvementEntree) {
+        if (nb == 0) break;
+
+        if (mouvement.nb - mouvement.sortie != 0) {
+          var reste = mouvement.nb - mouvement.sortie;
+          var mouvementDetail = new MouvementDetail({
+            mouvementEntree: mouvement._id,
+            mouvementSortie: mouvementInsert._id,
+          });
+          if (nb <= reste) {
+            mouvementDetail.nb = nb;
+            mouvement.sortie += nb;
+            nb = 0;
+          } else {
+            mouvement.sortie = mouvement.nb;
+            nb -= reste;
+            mouvementDetail.nb = reste;
+          }
+          move = await Mouvement.findById(mouvement._id);
+          move.detailPiece = mouvement.detailPiece;
+          move.utilisateur = mouvement.utilisateur;
+          move.fournisseur = mouvement.fournisseur;
+          move.prix = mouvement.prix;
+          move.nb = mouvement.nb;
+          move.sortie = mouvement.sortie;
+          move.isEntree = mouvement.isEntree;
+          await move.save();
+          mouvementDetail.save();
+        }
+      }
+    } else {
+      await mouvementInsert.save();
+    }
     return res.status(201).json({ message: "Mouvement créer." });
   } catch (error) {
-      console.error(error);
-    return res.status(500).json({ message: "Erreur lors de l'insertion de pièce." });
+    console.error(error);
+    return res
+      .status(500)
+      .json({ message: "Erreur lors de l'insertion de pièce." });
   }
 });
 
@@ -127,10 +129,10 @@ router.post("/insert", async (req, res) => {
 router.get("/allDataStock", async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    const size = 20;
+    const size = 10;
     const skip = (page - 1) * size;
     const filterDate = new Date(req.query.date);
-    
+
     const result = await Mouvement.aggregate([
       {
         $addFields: {
@@ -338,7 +340,7 @@ router.get("/listeMouvement", async (req, res) => {
       ? new Date(req.query.dateMouvement)
       : new Date();
     const page = parseInt(req.query.page) || 1;
-    const size = 20;
+    const size = 10;
     const skip = (page - 1) * size;
     const listMouvements = await Mouvement.find({
       detailPiece: idDetailPiece,
@@ -359,7 +361,7 @@ router.get("/listeMouvement", async (req, res) => {
         populate: {
           path: "role",
         },
-        select: "-mdp", 
+        select: "-mdp",
       })
       .sort({ dateMouvement: -1 })
       .skip(skip)

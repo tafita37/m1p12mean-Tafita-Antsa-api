@@ -26,7 +26,9 @@ router.post("/update", async (req, res) => {
     await marques.save();
     res.status(201).json({ message: "Marque modifiée." });
   } catch (error) {
-    res.status(500).json({ message: "Erreur lors de la modification de marque." });
+    res
+      .status(500)
+      .json({ message: "Erreur lors de la modification de marque." });
     console.error(error);
   }
 });
@@ -46,15 +48,16 @@ router.post("/delete", async (req, res) => {
 
     if (count > 0) {
       return res.status(400).json({
-        message:
-          "Impossible de supprimer ces marques.",
+        message: "Impossible de supprimer ces marques.",
       });
     }
 
     await Marque.deleteMany({ _id: { $in: idMarques } });
     res.status(200).json({ message: "Marque supprimées avec succès." });
   } catch (error) {
-    res.status(500).json({ message: "Erreur lors de la suppression des marques." });
+    res
+      .status(500)
+      .json({ message: "Erreur lors de la suppression des marques." });
     console.error(error);
   }
 });
@@ -63,12 +66,10 @@ router.post("/delete", async (req, res) => {
 router.get("/allMarque", async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    const size = 20;
+    const size = 10;
     const skip = (page - 1) * size;
     const total = await Marque.countDocuments();
-    const listMarque = await Marque.find()
-      .skip(skip)
-      .limit(size);
+    const listMarque = await Marque.find().skip(skip).limit(size);
     res.status(200).json({ marques: listMarque, nbMarque: total });
   } catch (error) {
     res.status(500).json({ message: "Erreur." });

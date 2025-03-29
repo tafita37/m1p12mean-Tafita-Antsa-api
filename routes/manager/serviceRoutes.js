@@ -1,154 +1,111 @@
 const express = require("express");
-const SousService = require("../../models/SousService");
 const Service = require("../../models/Service");
-const Piece = require("../../models/Piece");
 const router = express.Router();
 
-// Nouveau sous services
-router.post("/insertSousService", async (req, res) => {
+// Nouveau services
+router.post("/insert", async (req, res) => {
   try {
-    const sousService = new SousService(req.body);
-    if (req.body.pieces) {
-      const pieces = req.body.pieces.map((piece) => {
-        return { piece: piece.piece, etat: piece.etat };
-      });
-      var pieceFind = await Piece.find({
-        _id: { $in: pieces.map((piece) => piece.piece) },
-      });
-      if (pieceFind.length !== pieces.length) {
-        return res
-          .status(400)
-          .json({ message: "Il y a une pièce inexistante." });
-      }
-      for (var i = 0; i < pieceFind.length; i++) {
-        if (pieceFind[i].type == 1 && pieces[i].etat != 1) {
-          return res
-            .status(400)
-            .json({ message: "Cette pièce n'est pas réoarable." });
-        }
-      }
-      sousService.pieces = pieces;
-    }
-    await sousService.save();
-    return res.status(201).json({ message: "Sous service insérée." });
+    const nom=req.body.nom;
+    const sousServices = req.body.sousServices;
+    const service = new Service({ nom, sousServices });
+    await service.save();
+    return res.status(201).json({ message: "Service insérée." });
   } catch (error) {
     console.error(error);
     return res
       .status(500)
-      .json({ message: "Erreur lors de l'insertion de sous service." });
+      .json({ message: "Erreur lors de l'insertion de service." });
   }
 });
 
-// Liste des sous services
-router.get("/allSousServices", async (req, res) => {
+// Liste des services
+router.get("/allServices", async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    const size = 20;
+    const size = 10;
     const skip = (page - 1) * size;
-    const total = await SousService.countDocuments();
-    const listSousServices = await SousService.find()
-      .populate("pieces.piece")
+    const total = await Service.countDocuments();
+    const listServices = await Service.find()
+      .populate("sousServices")
       .skip(skip)
       .limit(size);
-    const pieces = await Piece.find();
     return res
       .status(200)
-      .json({ listSousServices, nbSousServices: total, pieces });
+      .json({ listServices, nbServices: total });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Erreur." });
   }
 });
 
-// Update sous services
-router.post("/updateSousService", async (req, res) => {
+// Update services
+router.post("/update", async (req, res) => {
   try {
-    const idSousService = req.body.idSousService;
-    const sousService = await SousService.findById(idSousService);
-    sousService.nom = req.body.nom;
-    sousService.prix = req.body.prix;
-    const pieces= req.body.pieces.map((piece) => {
-      return { piece: piece.piece, etat: piece.etat };
-    });
-    console.log(req.body.pieces);
-    
-    var pieceFind = await Piece.find({
-      _id: { $in: pieces.map((piece) => piece.piece) },
-    });
-    if (pieceFind.length !== pieces.length) {
-      return res.status(400).json({ message: "Il y a une pièce inexistante." });
+    const idService=req.body.idService;
+    const service = await Service.findById(idService);
+    if(!service){
+      return res.status(500).json({ message: "Service non trouvé." });
     }
-    for (var i = 0; i < pieceFind.length; i++) {
-      if (pieceFind[i].type == 1 && pieces[i].etat != 1) {
-        return res
-          .status(400)
-          .json({ message: "Cette pièce n'est pas réoarable." });
-      }
-    }
-    sousService.pieces.push(...pieces);
-    await sousService.save();
-    res.status(201).json({ message: "Sous service modifiée." });
-  } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Erreur lors de l'update de sous service." });
-    console.error(error);
-  }
-});
-
-// Supprimer plusieurs sous services
-router.post("/deleteSousService", async (req, res) => {
-  try {
-    const idSousServices = req.body.idSousServices;
-    if (!idSousServices || !Array.isArray(idSousServices)) {
-      return res.status(400).json({ message: "Liste d'ID invalide." });
-    }
-    const services = await Service.find({
-      sousServices: { $in: idSousServices },
-    });
-    if (services.length > 0) {
-      return res
-        .status(400)
-        .json({ message: "Vous ne pouvez pas supprimer ces sous services." });
-    }
-    await SousService.deleteMany({ _id: { $in: idSousServices } });
-    return res
-      .status(200)
-      .json({ message: "Sous services supprimées avec succès." });
+    const nom=req.body.nom;
+    const sousServices = req.body.sousServices || [];
+    service.nom = nom;
+    service.sousServices.push(...sousServices);
+    await service.save();
+    return res.status(201).json({ message: "Service modifiée." });
   } catch (error) {
     console.error(error);
     return res
       .status(500)
-      .json({ message: "Erreur lors de la suppression des sous services." });
+      .json({ message: "Erreur lors de la modification de service." });
   }
 });
 
-// Supprimer une pièce d'un sous-service
-router.post("/deleteServiceFromSous", async (req, res) => {
+// Supprimer une sous service d'un service
+router.post("/deleteSousFromService", async (req, res) => {
+  const idService = req.body.idService;
   const idSousService = req.body.idSousService;
-  const idPiece = req.body.idPiece;
 
   try {
-    const sousService = await SousService.findById(idSousService);
-    if (!sousService) {
-      return res.status(404).json({ message: "Sous-service non trouvé" });
+    const service = await Service.findById(idService);
+    if (!service) {
+      return res.status(404).json({ message: "Service non trouvé" });
     }
 
     // Filtrer la pièce à supprimer
-    sousService.pieces = sousService.pieces.filter(
-      (p) => p.piece.toString() !== idPiece
+    service.sousServices = service.sousServices.filter(
+      (s) => s.toString() !== idSousService
     );
 
     // Sauvegarder les changements
-    await sousService.save();
-
+    await service.save();
     return res
       .status(200)
-      .json({ message: "Pièce supprimée avec succès", sousService });
+      .json({ message: "Sous service supprimée avec susccès" });
   } catch (error) {
-    console.error("Erreur lors de la suppression de la pièce :", error);
+    console.error("Erreur lors de la suppression du sous services :", error);
     return res.status(500).json({ message: "Erreur serveur", error });
   }
 });
+
+// Supprimer plusieurs services
+router.post("/delete", async (req, res) => {
+  try {
+    const idServices = req.body.idServices;
+    if (!idServices || !Array.isArray(idServices)) {
+      return res.status(400).json({ message: "Liste d'ID invalide." });
+    }
+    await Service.deleteMany({ _id: { $in: idServices } });
+    return res
+      .status(200)
+      .json({ message: "Services supprimées avec succès." });
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(500)
+      .json({ message: "Erreur lors de la suppression des services." });
+  }
+});
+
+router.use("/sous", require("./service/sousRoutes"));
 
 module.exports = router;

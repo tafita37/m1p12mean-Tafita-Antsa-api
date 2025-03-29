@@ -10,7 +10,7 @@ const Piece = require("../models/Piece");
 router.get("/allUserNotValider", async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    const size = 20;
+    const size = 10;
     const skip = (page - 1) * size;
     const total = await User.countDocuments({
       dateValidation: null,
@@ -29,7 +29,9 @@ router.get("/allUserNotValider", async (req, res) => {
       ]);
 
     const listTypeClient = await TypeClient.find();
-    res.status(201).json({ user: existingUser, typeClients: listTypeClient, nbUser : total });
+    res
+      .status(201)
+      .json({ user: existingUser, typeClients: listTypeClient, nbUser: total });
   } catch (error) {
     res.status(500).json({ message: "Erreur." });
     console.error(error);
@@ -50,20 +52,24 @@ router.post("/validerInscription", async (req, res) => {
     }
     if (existingUser.role.niveau == 10) {
       if (!dateEmbauche) {
-        res.status(500).json({ message: "Veuillez indiquer la date d'embauche du mécanicien." });
+        res
+          .status(500)
+          .json({
+            message: "Veuillez indiquer la date d'embauche du mécanicien.",
+          });
       }
-      const existingMecanicien = await Mecanicien.findOne({ user: existingUser._id });
+      const existingMecanicien = await Mecanicien.findOne({
+        user: existingUser._id,
+      });
       existingUser.dateValidation = new Date();
       existingMecanicien.dateEmbauche = dateEmbauche;
       existingUser.save();
       existingMecanicien.save();
     } else {
       if (!typeClient) {
-        res
-          .status(500)
-          .json({
-            message: "Veuillez indiquer de quel type de client il s'agit.",
-          });
+        res.status(500).json({
+          message: "Veuillez indiquer de quel type de client il s'agit.",
+        });
       }
       const existingClient = await Client.findOne({
         user: existingUser._id,
@@ -74,7 +80,7 @@ router.post("/validerInscription", async (req, res) => {
       existingUser.save();
       existingClient.save();
     }
-    res.status(201).json({message : "Inscription validée."});
+    res.status(201).json({ message: "Inscription validée." });
   } catch (error) {
     res.status(500).json({ message: "Erreur." });
     console.error(error);
@@ -90,9 +96,9 @@ router.post("/refuserInscription", async (req, res) => {
       return res.status(500).json({ message: "L'utilisateur a été supprimé." });
     }
     existingUser.dateSuppression = new Date();
-    
+
     await existingUser.save();
-    return res.status(200).json({message : "Inscription refusée."});
+    return res.status(200).json({ message: "Inscription refusée." });
   } catch (error) {
     res.status(500).json({ message: "Erreur." });
     console.error(error);
