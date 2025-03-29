@@ -1,13 +1,20 @@
 const mongoose = require("mongoose");
 
-const sousServiceSchema = new mongoose.Schema({
-  nom: { type: String, required: true },
-  prix: { type: Number, required: true },
-//   dateSuppression: {
-//     type: Date,
-//     default: null, // Champ nullable par défaut
-//   },
-});
+const SousServiceSchema = new mongoose.Schema(
+  {
+    nom: { type: String, required: true },
+    prix: { type: Number, required: true },
+    pieces: [
+      {
+        piece: { type: mongoose.Schema.Types.ObjectId, ref: "Piece" },
+        etat: { type: Number },
+      },
+    ],
+  },
+  {
+    default: { pieces: [] }, 
+  }
+);
 
-const SousService = mongoose.model("SousService", sousServiceSchema);
+const SousService = mongoose.model("SousService", SousServiceSchema);
 module.exports = SousService;

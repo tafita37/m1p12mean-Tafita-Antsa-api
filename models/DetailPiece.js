@@ -12,6 +12,7 @@ const DetailPieceSchema = new mongoose.Schema(
       ref: "Marque",
       required: true,
     },
+    prixReparation: { type:  Number, required: true }
   },
   { timestamps: true }
 );
