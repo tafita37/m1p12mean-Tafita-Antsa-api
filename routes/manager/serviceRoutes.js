@@ -1,5 +1,6 @@
 const express = require("express");
 const Service = require("../../models/Service");
+const SousService = require("../../models/SousService");
 const router = express.Router();
 
 // Nouveau services
@@ -24,6 +25,7 @@ router.get("/allServices", async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const size = 10;
     const skip = (page - 1) * size;
+    const allSousServices=await SousService.find();
     const total = await Service.countDocuments();
     const listServices = await Service.find()
       .populate("sousServices")
@@ -31,7 +33,7 @@ router.get("/allServices", async (req, res) => {
       .limit(size);
     return res
       .status(200)
-      .json({ listServices, nbServices: total });
+      .json({ listServices, nbServices: total, allSousServices });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Erreur." });
