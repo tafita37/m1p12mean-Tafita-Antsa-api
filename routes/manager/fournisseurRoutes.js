@@ -9,7 +9,9 @@ router.post("/insert", async (req, res) => {
     await fournisseur.save();
     res.status(201).json({ message: "Fournisseur inséré." });
   } catch (error) {
-    res.status(500).json({ message: "Erreur lors de l'insertion de fournisseur." });
+    res
+      .status(500)
+      .json({ message: "Erreur lors de l'insertion de fournisseur." });
     console.error(error);
   }
 });
@@ -28,7 +30,9 @@ router.post("/update", async (req, res) => {
     await fournisseur.save();
     res.status(201).json({ message: "Fournisseur modifié." });
   } catch (error) {
-    res.status(500).json({ message: "Erreur lors de la modification de fournisseur." });
+    res
+      .status(500)
+      .json({ message: "Erreur lors de la modification de fournisseur." });
     console.error(error);
   }
 });
@@ -43,7 +47,9 @@ router.post("/delete", async (req, res) => {
     await Fournisseur.deleteMany({ _id: { $in: idFournisseurs } });
     res.status(201).json({ message: "Fournisseur(s) supprimé(s)." });
   } catch (error) {
-    res.status(500).json({ message: "Erreur lors de la suppression de fournisseur." });
+    res
+      .status(500)
+      .json({ message: "Erreur lors de la suppression de fournisseur." });
     console.error(error);
   }
 });
@@ -52,13 +58,13 @@ router.post("/delete", async (req, res) => {
 router.get("/allFournisseur", async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    const size = 20;
+    const size = 10;
     const skip = (page - 1) * size;
     const total = await Fournisseur.countDocuments();
-    const listFournisseur = await Fournisseur.find()
-      .skip(skip)
-      .limit(size);
-    res.status(200).json({ fournisseur: listFournisseur, nbFournisseur: total });
+    const listFournisseur = await Fournisseur.find().skip(skip).limit(size);
+    res
+      .status(200)
+      .json({ fournisseur: listFournisseur, nbFournisseur: total });
   } catch (error) {
     res.status(500).json({ message: "Erreur." });
     console.error(error);

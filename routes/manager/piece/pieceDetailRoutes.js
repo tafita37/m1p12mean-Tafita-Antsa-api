@@ -9,9 +9,7 @@ router.post("/insert", async (req, res) => {
   try {
     const idPiece = req.body.idPiece;
     const idMarque = req.body.idMarque;
-    const pieceDetail = new DetailPiece(
-        { piece: idPiece, marque: idMarque }
-    );
+    const pieceDetail = new DetailPiece({ piece: idPiece, marque: idMarque });
     await pieceDetail.save();
     res.status(201).json({ message: "Détails de pièce inséré." });
   } catch (error) {
@@ -24,7 +22,7 @@ router.post("/insert", async (req, res) => {
 router.post("/update", async (req, res) => {
   try {
     const idDetailPiece = req.body.idDetailPiece;
-    const pieceDetail = await DetailPiece.findById(idDetailPiece);  
+    const pieceDetail = await DetailPiece.findById(idDetailPiece);
     await pieceDetail.save();
     res.status(201).json({ message: "Détails de pièce modifié." });
   } catch (error) {
@@ -42,9 +40,13 @@ router.post("/delete", async (req, res) => {
     }
 
     await DetailPiece.deleteMany({ _id: { $in: idDetailPieces } });
-    res.status(200).json({ message: "Détails de pièces supprimées avec succès." });
+    res
+      .status(200)
+      .json({ message: "Détails de pièces supprimées avec succès." });
   } catch (error) {
-    res.status(500).json({ message: "Erreur lors de la suppression des pièces." });
+    res
+      .status(500)
+      .json({ message: "Erreur lors de la suppression des pièces." });
     console.error(error);
   }
 });
@@ -53,15 +55,24 @@ router.post("/delete", async (req, res) => {
 router.get("/allDetailPiece", async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    const size = 20;
+    const size = 10;
     const skip = (page - 1) * size;
     const total = await DetailPiece.countDocuments();
     const marques = await Marque.find();
     const pieces = await Piece.find();
-    const listDetailPiece = await DetailPiece.find().populate("piece").populate("marque")
+    const listDetailPiece = await DetailPiece.find()
+      .populate("piece")
+      .populate("marque")
       .skip(skip)
       .limit(size);
-    res.status(200).json({ detailPieces: listDetailPiece, nbDetailsPiece: total, marques : marques, pieces : pieces });
+    res
+      .status(200)
+      .json({
+        detailPieces: listDetailPiece,
+        nbDetailsPiece: total,
+        marques: marques,
+        pieces: pieces,
+      });
   } catch (error) {
     res.status(500).json({ message: "Erreur." });
     console.error(error);

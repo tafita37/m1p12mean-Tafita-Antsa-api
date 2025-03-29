@@ -7,12 +7,20 @@ const DetailPiece = require("../../models/DetailPiece");
 router.post("/insert", async (req, res) => {
   try {
     const nom = req.body.nom;
-    const pieces = new Piece({ nom: nom });
+    const type = req.body.type;
+    const prixReparation = req.body.prixReparation;
+    const prixRemplacement = req.body.prixRemplacement;
+    if (type == 11 && (prixReparation == null || prixReparation == 0)) {
+      return res.status(400).json({ message: "Prix de réparation requis." });
+    }
+    const pieces = new Piece(
+      { nom: nom, type: type, prixReparation: prixReparation, prixRemplacement: prixRemplacement }
+    );
     await pieces.save();
-    res.status(201).json({ message: "Pièce insérée." });
+    return res.status(201).json({ message: "Pièce insérée." });
   } catch (error) {
-    res.status(500).json({ message: "Erreur lors de l'insertion de pièce." });
     console.error(error);
+    return res.status(500).json({ message: "Erreur lors de l'insertion de pièce." });
   }
 });
 
@@ -21,15 +29,24 @@ router.post("/update", async (req, res) => {
   try {
     const idPiece = req.body.idPiece;
     const nom = req.body.nom;
+    const type = req.body.type;
+    const prixReparation = req.body.prixReparation;
+    const prixRemplacement = req.body.prixRemplacement;
+    if (type == 11 && (prixReparation == null || prixReparation == 0)) {
+      return res.status(400).json({ message: "Prix de réparation requis." });
+    }
     const pieces = await Piece.findById(idPiece);
     pieces.nom = nom;
+    pieces.type = type;
+    pieces.prixReparation = prixReparation;
+    pieces.prixRemplacement = prixRemplacement;
     await pieces.save();
-    res.status(201).json({ message: "Pièce modifiée." });
+    return res.status(201).json({ message: "Pièce modifiée." });
   } catch (error) {
-    res
+    console.error(error);
+    return res
       .status(500)
       .json({ message: "Erreur lors de la modification de pièce." });
-    console.error(error);
   }
 });
 
@@ -66,7 +83,7 @@ router.post("/delete", async (req, res) => {
 router.get("/allPiece", async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    const size = 20;
+    const size = 10;
     const skip = (page - 1) * size;
     const total = await Piece.countDocuments();
     const listPiece = await Piece.find().skip(skip).limit(size);
