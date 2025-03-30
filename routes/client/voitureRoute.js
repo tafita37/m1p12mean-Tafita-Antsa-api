@@ -1,5 +1,6 @@
 const express = require("express");
 const Voiture = require("../../models/Voiture");
+const Marque = require("../../models/Marque");
 const router = express.Router();
 
 // Insertion de voitures
@@ -39,10 +40,13 @@ router.get("/allVoiture", async (req, res) => {
     const listVoiture = await Voiture.find({
       client: client,
       dateSuppression: null,
-    })
+    }).populate("marque")
       .skip(skip)
-      .limit(size);
-    res.status(200).json({ voitures: listVoiture, nbVoiture: total });
+          .limit(size);
+      const allMarques=await Marque.find({});
+    res
+      .status(200)
+      .json({ voitures: listVoiture, nbVoiture: total, allMarques });
   } catch (error) {
     res.status(500).json({ message: "Erreur." });
     console.error(error);
