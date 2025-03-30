@@ -21,4 +21,5 @@ app.use('/articles', require('./routes/articleRoutes'));
 app.use("/auth", require("./routes/authentificationRoute")); 
 app.use("/tokenValid", require("./routes/validToken")); 
 app.use("/manager", verifyToken, require("./routes/managerRoute")); 
+app.use("/landing", require("./routes/landingRoute")); 
 app.listen(PORT, () => console.log(`Serveur démarré sur le port ${PORT}`)); 
