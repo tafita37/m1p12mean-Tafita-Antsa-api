@@ -4,6 +4,7 @@ const SousServiceSchema = new mongoose.Schema(
   {
     nom: { type: String, required: true },
     prix: { type: Number, required: true },
+    dureeMinute: { type: Number, required: true },
     pieces: [
       {
         piece: { type: mongoose.Schema.Types.ObjectId, ref: "Piece" },
@@ -12,7 +13,7 @@ const SousServiceSchema = new mongoose.Schema(
     ],
   },
   {
-    default: { pieces: [] }, 
+    default: { pieces: [] },
   }
 );
 
