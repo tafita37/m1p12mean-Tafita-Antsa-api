@@ -7,7 +7,11 @@ const DemandeSchema = new mongoose.Schema({
     ref: "Voiture",
   },
   details: {
-    service: { type: String, required: true },
+    service: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Service",
+      required: true,
+    },
     details: [
       {
         sousService: {
@@ -20,8 +24,8 @@ const DemandeSchema = new mongoose.Schema({
     ],
   },
   date: [{ type: Date, required: true }],
-  dateValidation: { type: Date, default : null },
-  dateRefus: { type: Date, default : null },
+  dateValidation: { type: Date, default: null },
+  dateRefus: { type: Date, default: null },
 });
 
 module.exports = mongoose.model("Demande", DemandeSchema);

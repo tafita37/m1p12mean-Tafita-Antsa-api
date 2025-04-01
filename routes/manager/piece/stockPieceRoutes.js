@@ -30,7 +30,7 @@ router.post("/insert", async (req, res) => {
         message: "Veuillez d'abord valider l'inscription de cet utilisateur.",
       });
     }
-    if (user.dateSuppression == null) {
+    if (user.dateSuppression != null) {
       return res.status(500).json({
         message: "L'utilisateur a été supprimée.",
       });
@@ -336,6 +336,7 @@ router.get("/allDataStock", async (req, res) => {
 router.get("/listeMouvement", async (req, res) => {
   try {
     const idDetailPiece = req.query.idDetailPiece;
+    const detailPiece=await DetailPiece.findById(idDetailPiece).populate("piece").populate("marque");
     const dateMouvement = req.query.dateMouvement
       ? new Date(req.query.dateMouvement)
       : new Date();
@@ -375,7 +376,9 @@ router.get("/listeMouvement", async (req, res) => {
         ],
       },
     });
-    res.status(200).json({ mouvements: listMouvements, nbMouvements: total });
+    res
+      .status(200)
+      .json({ mouvements: listMouvements, nbMouvements: total, detailPiece });
   } catch (error) {
     res.status(500).json({ message: "Erreur." });
     console.error(error);
