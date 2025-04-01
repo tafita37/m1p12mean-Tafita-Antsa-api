@@ -110,5 +110,6 @@ router.use("/marque", require("./manager/marqueRoutes"));
 router.use("/fournisseur", require("./manager/fournisseurRoutes"));
 router.use("/user", require("./manager/userRoutes"));
 router.use("/service", require("./manager/serviceRoutes"));
+router.use("/rdv", require("./manager/rdvRoutes"));
 
 module.exports = router;
