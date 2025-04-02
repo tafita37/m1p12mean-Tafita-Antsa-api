@@ -147,7 +147,8 @@ router.post("/validerRDV", async (req, res) => {
         mecanicien: planning[i].mecanicien,
         qte: planning[i].qte,
         dateHeureDebut: planning[i].dateHeureDebut,
-        estimationTotal: sousService.dureeMinute * planning[i].qte
+        estimationTotal: sousService.dureeMinute * planning[i].qte,
+        resteAFaire: sousService.dureeMinute * planning[i].qte,
       });
       await newPlanning.save();
     }
