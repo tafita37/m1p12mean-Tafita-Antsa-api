@@ -1,9 +1,11 @@
 const express = require("express");
 const jwt = require("jsonwebtoken");
 const Client = require("../models/Client");
+const Mecanicien = require("../models/Mecanicien");
 require("dotenv").config();
 const SECRET_KEY_MANAGER = process.env.SECRET_KEY_MANAGER;
 const SECRET_KEY_CLIENT = process.env.SECRET_KEY_CLIENT;
+const SECRET_KEY_MECANICIEN = process.env.SECRET_KEY_MECANICIEN;
 
 // Middleware de vérification de manager
 const verifyManager = function (req, res, next) {
@@ -61,5 +63,34 @@ const verifyClient = async function (req, res, next) {
   }
 };
 
+// Middleware de vérification de mécanicien
+const verifyMecanicien = async function (req, res, next) {
+  var token = req.header("Authorization");
+  token = token ? token.replace("Bearer ", "") : "";
+  if (!token)
+    return res.status(401).json({ message: "Accès refusé, token manquant" });
 
-module.exports = {verifyManager, verifyClient};
+  try {
+    const decoded = jwt.verify(token, SECRET_KEY_MECANICIEN);
+    const mecanicien = await Mecanicien.findOne({ user: decoded.id });
+
+    if (!mecanicien) {
+      return res.status(404).json({ message: "Mécanicien non trouvé" });
+    }
+    req.idMecanicien = mecanicien._id;
+
+    if (decoded.type !== "mecanicien") {
+      return res
+        .status(403)
+        .json({ message: "Accès interdit, vous n'êtes pas mécanicien" });
+    }
+
+    next();
+  } catch (err) {
+    res.status(400).json({ message: "Token invalide ou expiré" });
+    console.error(err);
+  }
+};
+
+
+module.exports = {verifyManager, verifyClient, verifyMecanicien};

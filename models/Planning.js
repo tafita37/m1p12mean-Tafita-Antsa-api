@@ -36,7 +36,6 @@ const PlanningSchema = new mongoose.Schema(
     },
     resteAFaire: {
       type: Number,
-      default: 0,
     },
   },
   { timestamps: true }
