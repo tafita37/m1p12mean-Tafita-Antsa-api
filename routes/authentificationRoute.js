@@ -163,7 +163,7 @@ router.post("/registerUserMecanicien", async (req, res) => {
     });
     await mecanicien.save();
     const employeType = await TypeClient.findOne({
-      nom: { $regex: "^Employé$", $options: "i" },
+      nom: { $regex: "^Elite$", $options: "i" },
     });
     const newClient = new Client({
       user: newUser._id,
