@@ -1,20 +1,11 @@
 const mongoose = require("mongoose");
 
-const ServiceSchema = new mongoose.Schema(
-  {
-    nom: {
-      type: String,
-      required: [true, "Le nom du service est obligatoire."],
-      unique: true
-    },
-    prestations: [{
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Prestation",
-      required: [true, "Au moins une prestation est requise."]
-    }]
-  },
-  { timestamps: true }
-);
+const serviceSchema = new mongoose.Schema({
+  nom: { type: String, required: true, unique : true },
+  sousServices: [
+    { type: mongoose.Schema.Types.ObjectId, ref: "SousService" },
+  ],
+});
 
-module.exports = mongoose.model("Service", ServiceSchema);
-
+const Service = mongoose.model("Service", serviceSchema);
+module.exports = Service;
