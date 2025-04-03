@@ -41,6 +41,7 @@ const PlanningSchema = new mongoose.Schema(
       type: Number,
       default: null,
     },
+    dateValidationTravail: { type: Date, default: null },
   },
   { timestamps: true }
 );
