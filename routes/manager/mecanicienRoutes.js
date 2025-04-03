@@ -135,5 +135,4 @@ router.post("/validerPlanning", async (req, res) => {
   }
 });
 
-
 module.exports = router;
