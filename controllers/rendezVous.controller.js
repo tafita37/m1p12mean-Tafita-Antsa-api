@@ -1,5 +1,6 @@
 const RendezVous = require('../models/RendezVous');
 const mongoose = require('mongoose');
+const sendEmail = require("../mail/mailer");
 
 exports.create = async (req, res) => {
     try {
@@ -124,7 +125,27 @@ exports.rejectAppointment = async (req, res) => {
             req.params.id,
             updateData,
             { new: true, runValidators: true }
-        ).populate('vehiculeId');
+        ).populate({
+            path: 'vehiculeId',
+            populate: {
+                path: 'proprietaire'
+            }
+        });
+
+        const formattedDate = new Date(rdv.dateRdv).toLocaleDateString('fr-FR', {
+            weekday: 'long',
+            day: '2-digit',
+            month: 'long'
+        });
+        
+        const capitalize = (str) => str.charAt(0).toUpperCase() + str.slice(1);
+        const finalDate = formattedDate.split(' ').map(capitalize).join(' ');
+        
+        sendEmail(rdv.vehiculeId.proprietaire.email,"Demande de rendez-vous rejetée","reject", {
+            clientName: rdv.vehiculeId.proprietaire.prenom,
+            appointmentDate: finalDate,
+            reason: rdv.motif,
+        });
 
         if (!rdv) {
             return res.status(404).json({ message: "Rendez-vous non trouvé" });
@@ -152,7 +173,26 @@ exports.acceptAppointment = async (req, res) => {
             req.params.id,
             updateData,
             { new: true, runValidators: true }
-        ).populate('vehiculeId');
+        ).populate({
+            path: 'vehiculeId',
+            populate: {
+                path: 'proprietaire'
+            }
+        });
+
+        const formattedDate = new Date(rdv.dateRdv).toLocaleDateString('fr-FR', {
+            weekday: 'long',
+            day: '2-digit',
+            month: 'long'
+        });
+        
+        const capitalize = (str) => str.charAt(0).toUpperCase() + str.slice(1);
+        const finalDate = formattedDate.split(' ').map(capitalize).join(' ');
+        
+        sendEmail(rdv.vehiculeId.proprietaire.email,"Demande de rendez-vous acceptée","confirm", {
+            clientName: rdv.vehiculeId.proprietaire.prenom,
+            appointmentDate: finalDate,
+        });
 
         if (!rdv) {
             return res.status(404).json({ message: "Rendez-vous non trouvé" });

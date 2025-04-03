@@ -42,3 +42,26 @@ exports.findAll = async (req, res) => {
         res.status(500).json({ message: "Erreur lors de la récupération", error: error.message });
     }
 };
+
+exports.findPlanningMechanic = async (req, res) => {
+    try {
+        const result = await Planning.find({
+            mechanic: req.params.id
+        })
+        .populate({
+            path: 'appointment',
+            populate: [
+                { path: 'vehiculeId' }, // Populate du véhicule
+                { 
+                    path: 'prestations.prestationId' // Populate des prestations dans appointment
+                }
+            ]
+        });
+
+        res.status(200).json(result);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Erreur serveur' });
+    }
+};
+
