@@ -21,4 +21,13 @@ app.use('/articles', require('./routes/articleRoutes'));
 app.use("/auth", require("./routes/authentificationRoute")); 
 app.use("/tokenValid", require("./routes/validToken")); 
 app.use("/manager", verifyToken, require("./routes/managerRoute")); 
+
+app.use("/vehicules", require("./routes/vehicule.routes"));
+app.use("/prestations", require("./routes/manager/service/prestation.routes")); 
+app.use("/services", require("./routes/manager/service/service.routes")); 
+app.use('/rendezvous', require('./routes/manager/service/rendezVous.routes')); 
+app.use('/user', require("./routes/manager/userRoutes"));
+
+app.use('/planning', require("./routes/manager/service/planning.route"));
+
 app.listen(PORT, () => console.log(`Serveur démarré sur le port ${PORT}`)); 
