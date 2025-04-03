@@ -37,6 +37,10 @@ const PlanningSchema = new mongoose.Schema(
     resteAFaire: {
       type: Number,
     },
+    nbEtoile: {
+      type: Number,
+      default: null,
+    },
   },
   { timestamps: true }
 );
