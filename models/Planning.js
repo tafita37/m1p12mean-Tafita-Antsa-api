@@ -1,44 +1,10 @@
+
 const mongoose = require("mongoose");
 
-const PlanningSchema = new mongoose.Schema(
-  {
-    demande: {
-      type: mongoose.Schema.Types.ObjectId,
-      required: true,
-      ref: "Demande",
-    },
-    sousService: {
-      type: mongoose.Schema.Types.ObjectId,
-      required: true,
-      ref: "SousService",
-    },
-    mecanicien: {
-      type: mongoose.Schema.Types.ObjectId,
-      required: true,
-      ref: "Mecanicien",
-    },
-    qte: {
-      type: Number,
-      required: true,
-    },
-    dateHeureDebut: {
-      type: Date,
-      required: true,
-    },
-    estimationTotal: {
-      type: Number,
-      required: true,
-      //   default: 0,
-    },
-    tempsPasse: {
-      type: Number,
-      default: 0,
-    },
-    resteAFaire: {
-      type: Number,
-    },
-  },
-  { timestamps: true }
-);
+const PlanningSchema = new mongoose.Schema({
+    appointment: {type: mongoose.Schema.Types.ObjectId, ref: "RendezVous", required: true},
+    mechanic: {type: mongoose.Schema.Types.ObjectId, ref: "User", required: true},
+    date: {type: Date, required: true}
+}) 
 
-module.exports = mongoose.model("Planning", PlanningSchema);
+module.exports = mongoose.model("Planning",PlanningSchema);
