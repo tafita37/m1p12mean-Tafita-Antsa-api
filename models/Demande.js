@@ -25,6 +25,7 @@ const DemandeSchema = new mongoose.Schema({
   },
   date: [{ type: Date, required: true }],
   dateValidation: { type: Date, default: null },
+  dateValidationTravail: { type: Date, default: null },
   dateRefus: { type: Date, default: null },
 });
 
