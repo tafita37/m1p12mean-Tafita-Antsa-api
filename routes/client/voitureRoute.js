@@ -1,6 +1,7 @@
 const express = require("express");
 const Voiture = require("../../models/Voiture");
 const Marque = require("../../models/Marque");
+const Demande = require("../../models/Demande");
 const router = express.Router();
 
 // Insertion de voitures
@@ -75,6 +76,35 @@ router.post("/update", async (req, res) => {
     res
       .status(500)
       .json({ message: "Erreur lors de la modification de la voiture." });
+    console.error(error);
+  }
+});
+
+// Historique des services d'une voiture
+router.get("/getHistoriqueOfVoiture", async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const idVoiture = req.query.idVoiture;
+    const voiture = await Voiture.findById(idVoiture);
+    const size = 10;
+    const skip = (page - 1) * size;
+    const client = req.idClient;
+    const total= await Demande.countDocuments({
+      voiture: idVoiture,
+      dateValidation: { $ne: null },
+      dateRefus: null,
+    });
+    const demandes = await Demande.find({
+      voiture: idVoiture,
+      dateValidation: { $ne: null },
+      dateRefus: null,
+    })
+      .populate("details.service")
+      .skip(skip)
+      .limit(size);
+    res.status(200).json({ demandes, nbHistorique: total, voiture });
+  } catch (error) {
+    res.status(500).json({ message: "Erreur." });
     console.error(error);
   }
 });
