@@ -24,7 +24,7 @@ router.post("/insert", async (req, res) => {
         if (pieceFind[i].type == 1 && pieces[i].etat != 1) {
           return res
             .status(400)
-            .json({ message: "Cette pièce n'est pas réoarable." });
+            .json({ message: "Cette pièce n'est pas réparable." });
         }
       }
       sousService.pieces = pieces;
