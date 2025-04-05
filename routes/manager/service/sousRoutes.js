@@ -67,6 +67,7 @@ router.post("/update", async (req, res) => {
     const sousService = await SousService.findById(idSousService);
     sousService.nom = req.body.nom;
     sousService.prix = req.body.prix;
+    sousService.dureeMinute = req.body.dureeMinute;
     const pieces = req.body.pieces.map((piece) => {
       return { piece: piece.piece, etat: piece.etat };
     });
