@@ -49,12 +49,8 @@ router.post("/insert", async (req, res) => {
       nb: nb,
     });
     if (dateMouvement) {
-      const dateFromClient = new Date(dateMouvement);
-      mouvementInsert.dateMouvement = new Date(
-        dateFromClient.getFullYear(),
-        dateFromClient.getMonth(),
-        dateFromClient.getDate()
-      );
+      console.log(dateMouvement, "not null");
+      mouvementInsert.dateMouvement = new Date(dateMouvement);
     } else {
       
       console.log(dateMouvement, "null");
