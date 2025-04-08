@@ -49,7 +49,11 @@ router.post("/insert", async (req, res) => {
       nb: nb,
     });
     if (dateMouvement) {
+      console.log(dateMouvement, "not null");
       mouvementInsert.dateMouvement = new Date(dateMouvement);
+    } else {
+      
+      console.log(dateMouvement, "null");
     }
     if (!isEntree) {
       const listMouvementEntree = await Mouvement.aggregate([
