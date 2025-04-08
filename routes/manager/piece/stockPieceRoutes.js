@@ -136,7 +136,7 @@ router.get("/allDataStock", async (req, res) => {
     const size = 10;
     const skip = (page - 1) * size;
     const filterDate = new Date(req.query.date);
-    console.log(filterDate, "filtre");
+    console.log(filterDate, "filtre", req.query.date);
     
     const result = await Mouvement.aggregate([
       {
