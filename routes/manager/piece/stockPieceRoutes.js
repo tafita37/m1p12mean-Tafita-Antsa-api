@@ -49,12 +49,8 @@ router.post("/insert", async (req, res) => {
       nb: nb,
     });
     if (dateMouvement) {
-      console.log(dateMouvement, "not null");
       mouvementInsert.dateMouvement = new Date(dateMouvement);
-    } else {
-      
-      console.log(dateMouvement, "null");
-    }
+    } 
     if (!isEntree) {
       const listMouvementEntree = await Mouvement.aggregate([
         {
@@ -71,6 +67,7 @@ router.post("/insert", async (req, res) => {
       const resteStock = await Mouvement.aggregate([
         {
           $match: {
+            dateMouvement: { $lte: mouvementInsert.dateMouvement },
             isEntree: true,
             detailPiece: detailPiece._id,
             $expr: { $lt: ["$sortie", "$nb"] }, // Filtre les entrées où sortie < nb
