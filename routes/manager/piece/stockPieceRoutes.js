@@ -298,6 +298,11 @@ router.get("/allDataStock", async (req, res) => {
     // const allUser = await User.find().select("-mdp");
     const allUser = await User.aggregate([
       {
+        $match: {
+          dateValidation: { $ne: null }, // Filtrer uniquement les utilisateurs validés
+        },
+      },
+      {
         $lookup: {
           from: "roles", // Nom de la collection MongoDB des rôles
           localField: "role",
