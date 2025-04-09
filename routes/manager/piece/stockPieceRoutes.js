@@ -40,7 +40,7 @@ router.post("/insert", async (req, res) => {
     var nb = req.body.nb;
     const isEntree = req.body.isEntree;
     const dateMouvement = req.body.dateMouvement;
-    const nbMouvementAvant=await Mouvement.countDocuments({detailPiece : detailPiece._id, dateMouvement : {$lte : dateMouvement}});
+    const nbMouvementAvant=await Mouvement.countDocuments({detailPiece : detailPiece._id, dateMouvement : {$gt : dateMouvement}});
     if(nbMouvementAvant!=0) {
       return res.status(500).json({
         message: "Vous ne pouvez plus faire de nouveau mouvement car un mouvement a déjà été effectué avant.",
