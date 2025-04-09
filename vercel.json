@@ -1,0 +1,6 @@
+{
+  "version": 2,
+  "name": "m1p12mean-Tafita-Antsa-api",
+  "builds": [{ "src": "server.js", "use": "@vercel/node" }],
+  "routes": [{ "src": "/(.*)", "dest": "/server.js" }]
+}

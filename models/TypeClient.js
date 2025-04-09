@@ -1,5 +1,4 @@
 const mongoose = require("mongoose");
-const bcrypt = require("bcryptjs");
 
 const TypeClientSchema = new mongoose.Schema(
   {
@@ -7,7 +6,13 @@ const TypeClientSchema = new mongoose.Schema(
       type: String,
       required: [true, "Le nom est requis."],
       trim: true,
-      unique : true
+      unique: true,
+    },
+    nbRdvMin: {
+      type: Number,
+      required: [true, "Le nombre de rendez-vous minimum est requis."],
+      min: [0, "Le nombre de rendez-vous minimum doit être au minimum de 0."],
+      max: [50, "Le nombre de rendez-vous minimum ne peut pas dépasser 50."],
     },
     reduction: {
       type: Number,

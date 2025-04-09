@@ -10,10 +10,16 @@ const Piece = require("../models/Piece");
 router.get("/allUserNotValider", async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    const size = 20;
+    const size = 10;
     const skip = (page - 1) * size;
-    const total = await User.countDocuments({ dateValidation: null });
-    const existingUser = await User.find({ dateValidation: null })
+    const total = await User.countDocuments({
+      dateValidation: null,
+      dateSuppression: null,
+    });
+    const existingUser = await User.find({
+      dateValidation: null,
+      dateSuppression: null,
+    })
       .skip(skip)
       .limit(size)
       .select("-mdp")
@@ -23,7 +29,9 @@ router.get("/allUserNotValider", async (req, res) => {
       ]);
 
     const listTypeClient = await TypeClient.find();
-    res.status(201).json({ user: existingUser, typeClients: listTypeClient, nbUser : total });
+    res
+      .status(201)
+      .json({ user: existingUser, typeClients: listTypeClient, nbUser: total });
   } catch (error) {
     res.status(500).json({ message: "Erreur." });
     console.error(error);
@@ -39,22 +47,29 @@ router.post("/validerInscription", async (req, res) => {
     const existingUser = await User.findById(idUser)
       .select("-mdp")
       .populate("role");
+    if (existingUser.dateSuppression != null) {
+      return res.status(500).json({ message: "L'utilisateur a été supprimé." });
+    }
     if (existingUser.role.niveau == 10) {
       if (!dateEmbauche) {
-        res.status(500).json({ message: "Veuillez indiquer la date d'embauche du mécanicien." });
+        res
+          .status(500)
+          .json({
+            message: "Veuillez indiquer la date d'embauche du mécanicien.",
+          });
       }
-      const existingMecanicien = await Mecanicien.findOne({ user: existingUser._id });
+      const existingMecanicien = await Mecanicien.findOne({
+        user: existingUser._id,
+      });
       existingUser.dateValidation = new Date();
       existingMecanicien.dateEmbauche = dateEmbauche;
       existingUser.save();
       existingMecanicien.save();
     } else {
       if (!typeClient) {
-        res
-          .status(500)
-          .json({
-            message: "Veuillez indiquer de quel type de client il s'agit.",
-          });
+        res.status(500).json({
+          message: "Veuillez indiquer de quel type de client il s'agit.",
+        });
       }
       const existingClient = await Client.findOne({
         user: existingUser._id,
@@ -65,7 +80,7 @@ router.post("/validerInscription", async (req, res) => {
       existingUser.save();
       existingClient.save();
     }
-    res.status(201).json({message : "Inscription validée."});
+    res.status(201).json({ message: "Inscription validée." });
   } catch (error) {
     res.status(500).json({ message: "Erreur." });
     console.error(error);
@@ -77,14 +92,13 @@ router.post("/refuserInscription", async (req, res) => {
   try {
     const idUser = req.body.idUser;
     const existingUser = await User.findById(idUser);
-    console.log(existingUser);
-    
-    const existingClient = await Client.findOne({user : existingUser._id});
-    const existingMecanicien = await Mecanicien.findOne({ user: existingUser._id });
-    if (existingMecanicien) await existingMecanicien.deleteOne();
-    if (existingClient) await existingClient.deleteOne();
-    if (existingUser) await existingUser.deleteOne();
-    res.status(200).json({message : "Inscription refusée."});
+    if (existingUser.dateSuppression != null) {
+      return res.status(500).json({ message: "L'utilisateur a été supprimé." });
+    }
+    existingUser.dateSuppression = new Date();
+
+    await existingUser.save();
+    return res.status(200).json({ message: "Inscription refusée." });
   } catch (error) {
     res.status(500).json({ message: "Erreur." });
     console.error(error);
@@ -94,5 +108,9 @@ router.post("/refuserInscription", async (req, res) => {
 router.use("/piece", require("./manager/pieceRoutes"));
 router.use("/marque", require("./manager/marqueRoutes"));
 router.use("/fournisseur", require("./manager/fournisseurRoutes"));
+router.use("/user", require("./manager/userRoutes"));
+router.use("/service", require("./manager/serviceRoutes"));
+router.use("/rdv", require("./manager/rdvRoutes"));
+router.use("/mecanicien", require("./manager/mecanicienRoutes"));
 
 module.exports = router;
