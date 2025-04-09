@@ -24,7 +24,7 @@ router.post("/insert", async (req, res) => {
       });
     }
     const idUser = req.body.idUser;
-    const user = await User.findById(idUser);
+    const user = await User.findById(idUser).populate("role");
     if (user.dateValidation == null) {
       return res.status(500).json({
         message: "Veuillez d'abord valider l'inscription de cet utilisateur.",
@@ -192,6 +192,11 @@ router.post("/insert", async (req, res) => {
         }
       }
     } else {
+      if (user.role.niveau == 1) {
+        return res.status(500).json({
+          message: "Un client ne peut pas faire d'ajout de stock.",
+        });
+      }
       await mouvementInsert.save();
     }
     return res.status(201).json({ message: "Mouvement créer." });
