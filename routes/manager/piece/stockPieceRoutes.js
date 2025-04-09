@@ -50,18 +50,43 @@ router.post("/insert", async (req, res) => {
     });
     if (dateMouvement) {
       mouvementInsert.dateMouvement = new Date(dateMouvement);
-    } 
+    }
     if (!isEntree) {
       const listMouvementEntree = await Mouvement.aggregate([
         {
           $match: {
+            dateMouvement: { $lte: mouvementInsert.dateMouvement },
             isEntree: true,
             detailPiece: detailPiece._id,
-            $expr: { $lt: ["$sortie", "$nb"] },
           },
         },
         {
-          $sort: { dateMouvement: -1 }, // Trie directement en base de données par dateMouvement décroissant
+          $addFields: {
+            sortieFiltree: {
+              $filter: {
+                input: "$sortie",
+                as: "s",
+                cond: {
+                  $lte: ["$$s.dateMouvement", mouvementInsert.dateMouvement],
+                },
+              },
+            },
+          },
+        },
+        {
+          $addFields: {
+            totalSortie: {
+              $sum: "$sortieFiltree.nb",
+            },
+          },
+        },
+        {
+          $match: {
+            $expr: { $lt: ["$totalSortie", "$nb"] }, // Comparaison entre total des sorties et nb
+          },
+        },
+        {
+          $sort: { dateMouvement: -1 }, // Trie par dateMouvement décroissante
         },
       ]);
       const resteStock = await Mouvement.aggregate([
@@ -70,48 +95,100 @@ router.post("/insert", async (req, res) => {
             dateMouvement: { $lte: mouvementInsert.dateMouvement },
             isEntree: true,
             detailPiece: detailPiece._id,
-            $expr: { $lt: ["$sortie", "$nb"] }, // Filtre les entrées où sortie < nb
+          },
+        },
+        {
+          $addFields: {
+            sortieFiltree: {
+              $filter: {
+                input: "$sortie",
+                as: "s",
+                cond: {
+                  $lte: ["$$s.dateMouvement", mouvementInsert.dateMouvement],
+                },
+              },
+            },
+          },
+        },
+        {
+          $addFields: {
+            totalSortie: {
+              $sum: "$sortieFiltree.nb",
+            },
+          },
+        },
+        {
+          $addFields: {
+            disponible: {
+              $subtract: ["$nb", "$totalSortie"],
+            },
+          },
+        },
+        {
+          $match: {
+            disponible: { $gt: 0 },
           },
         },
         {
           $group: {
-            _id: null, // Pas besoin de regrouper par un champ spécifique
-            totalDisponible: { $sum: { $subtract: ["$nb", "$sortie"] } }, // Calcule nb - sortie et fait la somme
+            _id: null,
+            totalDisponible: { $sum: "$disponible" },
           },
         },
       ]);
-      if (resteStock.length == 0 || resteStock[0].totalDisponible < nb) {
+
+      if (resteStock.length === 0 || resteStock[0].totalDisponible < nb) {
         return res.status(500).json({ message: "Stock insuffisant." });
       }
+
       await mouvementInsert.save();
       for (const mouvement of listMouvementEntree) {
-        if (nb == 0) break;
+        if (nb === 0) break;
 
-        if (mouvement.nb - mouvement.sortie != 0) {
-          var reste = mouvement.nb - mouvement.sortie;
-          var mouvementDetail = new MouvementDetail({
+        // Calculer la somme des sorties valides (avant la date du mouvement de sortie)
+        const totalSortie = (mouvement.sortie || [])
+          .filter(
+            (s) =>
+              new Date(s.dateMouvement) <=
+              new Date(mouvementInsert.dateMouvement)
+          )
+          .reduce((acc, s) => acc + s.nb, 0);
+
+        const disponible = mouvement.nb - totalSortie;
+
+        if (disponible > 0) {
+          const mouvementDetail = new MouvementDetail({
             mouvementEntree: mouvement._id,
             mouvementSortie: mouvementInsert._id,
           });
-          if (nb <= reste) {
-            mouvementDetail.nb = nb;
-            mouvement.sortie += nb;
+
+          let quantiteSortie = 0;
+
+          if (nb <= disponible) {
+            quantiteSortie = nb;
             nb = 0;
           } else {
-            mouvement.sortie = mouvement.nb;
-            nb -= reste;
-            mouvementDetail.nb = reste;
+            quantiteSortie = disponible;
+            nb -= disponible;
           }
-          move = await Mouvement.findById(mouvement._id);
-          move.detailPiece = mouvement.detailPiece;
-          move.utilisateur = mouvement.utilisateur;
-          move.fournisseur = mouvement.fournisseur;
-          move.prix = mouvement.prix;
-          move.nb = mouvement.nb;
-          move.sortie = mouvement.sortie;
-          move.isEntree = mouvement.isEntree;
-          await move.save();
-          mouvementDetail.save();
+
+          mouvementDetail.nb = quantiteSortie;
+
+          // Mise à jour du mouvement d'entrée : ajouter une sortie
+          await Mouvement.findByIdAndUpdate(
+            mouvement._id,
+            {
+              $push: {
+                sortie: {
+                  nb: quantiteSortie,
+                  dateMouvement: mouvementInsert.dateMouvement,
+                },
+              },
+            },
+            { new: true }
+          );
+
+          await mouvementDetail.save();
         }
       }
     } else {
@@ -134,7 +211,7 @@ router.get("/allDataStock", async (req, res) => {
     const skip = (page - 1) * size;
     const filterDate = new Date(req.query.date);
     console.log(filterDate, "filtre", req.query.date);
-    
+
     const result = await Mouvement.aggregate([
       {
         $addFields: {
@@ -186,6 +263,18 @@ router.get("/allDataStock", async (req, res) => {
         },
       },
       {
+        $addFields: {
+          // Filtrage de la sortie pour ne garder que les entrées dont dateMouvement <= filterDate
+          sortieFiltree: {
+            $filter: {
+              input: "$sortie",
+              as: "s",
+              cond: { $lte: ["$$s.dateMouvement", filterDate] },
+            },
+          },
+        },
+      },
+      {
         $group: {
           _id: "$detailPiece._id",
           detailPiece: { $first: "$detailPiece" },
@@ -203,7 +292,10 @@ router.get("/allDataStock", async (req, res) => {
               $cond: {
                 if: { $eq: ["$isEntree", true] },
                 then: {
-                  $multiply: ["$prix", { $subtract: ["$nb", "$sortie"] }],
+                  $multiply: [
+                    "$prix",
+                    { $subtract: ["$nb", { $sum: "$sortieFiltree.nb" }] },
+                  ],
                 },
                 else: 0,
               },
@@ -213,7 +305,7 @@ router.get("/allDataStock", async (req, res) => {
             $sum: {
               $cond: {
                 if: { $eq: ["$isEntree", true] },
-                then: { $subtract: ["$nb", "$sortie"] },
+                then: { $subtract: ["$nb", { $sum: "$sortieFiltree.nb" }] },
                 else: 0,
               },
             },
@@ -235,6 +327,7 @@ router.get("/allDataStock", async (req, res) => {
       { $skip: skip },
       { $limit: size },
     ]);
+    
 
     const totalCountPipeline = await Mouvement.aggregate([
       {
@@ -281,12 +374,25 @@ router.get("/allDataStock", async (req, res) => {
       },
       { $unwind: { path: "$marque", preserveNullAndEmptyArrays: true } },
       {
+        $addFields: {
+          // Filtrage de la sortie pour ne garder que les entrées dont dateMouvement <= filterDate
+          sortieFiltree: {
+            $filter: {
+              input: "$sortie",
+              as: "s",
+              cond: { $lte: ["$$s.dateMouvement", filterDate] },
+            },
+          },
+        },
+      },
+      {
         $group: {
           _id: "$detailPiece._id",
         },
       },
       { $count: "total" },
     ]);
+    
 
     const total =
       totalCountPipeline.length > 0 ? totalCountPipeline[0].total : 0;
@@ -348,15 +454,14 @@ router.get("/listeMouvement", async (req, res) => {
       .populate("piece");
 
     const dateFin =
-      req.query.dateFin && req.query.dateFin !="null"
+      req.query.dateFin && req.query.dateFin != "null"
         ? new Date(req.query.dateFin)
         : null;
     const dateDebut =
       req.query.dateDebut && req.query.dateDebut != "null"
         ? new Date(req.query.dateDebut)
         : null;
-    const typeMouvement = parseInt(req.query.typeMouvement) || 0; 
-    
+    const typeMouvement = parseInt(req.query.typeMouvement) || 0;
 
     const page = parseInt(req.query.page) || 1;
     const size = 20;
@@ -424,13 +529,11 @@ router.get("/listeMouvement", async (req, res) => {
     // Comptage des documents
     const total = await Mouvement.countDocuments(conditions);
 
-    return res
-      .status(200)
-      .json({
-        detailPiece: detailPiece,
-        mouvements: listMouvements,
-        nbMouvements: total,
-      });
+    return res.status(200).json({
+      detailPiece: detailPiece,
+      mouvements: listMouvements,
+      nbMouvements: total,
+    });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Erreur." });
