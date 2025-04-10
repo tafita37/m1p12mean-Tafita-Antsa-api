@@ -152,6 +152,8 @@ router.get("/allDataValidation", async (req, res) => {
           },
         },
       ]);
+      console.log(result);
+      
       if (result.length > 0) {
         if (result[0].totalDisponible < pieceKeyList[idPiece].quantite) {
           pieceKeyList[idPiece].disponible =
