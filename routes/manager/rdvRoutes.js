@@ -65,7 +65,7 @@ router.get("/allDataValidation", async (req, res) => {
         },
       });
     const dateDemande = demande.date;
-    const allMecanicien = await Mecanicien.find().populate({
+    const allMecanicien = await Mecanicien.find({dateEmbauche : {$ne : null}, dateRenvoie : null}).populate({
       path: "user",
       select: "-mdp",
     });
