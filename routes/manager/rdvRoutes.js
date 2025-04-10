@@ -115,29 +115,13 @@ router.get("/allDataValidation", async (req, res) => {
         {
           $match: {
             detailPiece: detailPiece._id,
-            dateMouvement: { $lte: dateDemande }, // on filtre les mouvements jusqu'à la date donnée
           },
         },
         {
           $addFields: {
-            sortieFiltrees: {
-              $filter: {
-                input: "$sortie",
-                as: "s",
-                cond: {
-                  $and: [
-                    { $lte: ["$$s.dateMouvement", dateDemande] },
-                    // si tu veux filtrer par type, ajoute ici par ex:
-                    // { $eq: ["$$s.type", "tonTypeSouhaité"] }
-                  ],
-                },
-              },
+            totalSortie: {
+              $sum: "$sortie.nb", // somme tous les nb du tableau sortie
             },
-          },
-        },
-        {
-          $addFields: {
-            totalSortie: { $sum: "$sortieFiltrees.nb" },
           },
         },
         {
