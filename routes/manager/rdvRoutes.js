@@ -64,6 +64,7 @@ router.get("/allDataValidation", async (req, res) => {
           },
         },
       });
+    const dateDemande = demande.date;
     const allMecanicien = await Mecanicien.find().populate({
       path: "user",
       select: "-mdp",
@@ -95,14 +96,14 @@ router.get("/allDataValidation", async (req, res) => {
       listeAVendre.push({
         piece: pieceKeyList[idPiece].piece,
         quantite: pieceKeyList[idPiece].quantite,
-        prix : 0
+        prix: 0,
       });
       let detailPiece = await DetailPiece.findOne({
         piece: idPiece,
         marque: idMarque,
       });
-        console.log(detailPiece);
-        
+      console.log(detailPiece);
+
       if (!detailPiece) {
         detailPiece = new DetailPiece({
           piece: idPiece,
@@ -111,8 +112,39 @@ router.get("/allDataValidation", async (req, res) => {
         await detailPiece.save();
       }
       let result = await Mouvement.aggregate([
-        { $match: { detailPiece: detailPiece._id } },
-        { $addFields: { disponible: { $subtract: ["$nb", "$sortie"] } } },
+        {
+          $match: {
+            detailPiece: detailPiece._id,
+            dateMouvement: { $lte: dateDemande }, // on filtre les mouvements jusqu'à la date donnée
+          },
+        },
+        {
+          $addFields: {
+            sortieFiltrees: {
+              $filter: {
+                input: "$sortie",
+                as: "s",
+                cond: {
+                  $and: [
+                    { $lte: ["$$s.dateMouvement", dateDemande] },
+                    // si tu veux filtrer par type, ajoute ici par ex:
+                    // { $eq: ["$$s.type", "tonTypeSouhaité"] }
+                  ],
+                },
+              },
+            },
+          },
+        },
+        {
+          $addFields: {
+            totalSortie: { $sum: "$sortieFiltrees.nb" },
+          },
+        },
+        {
+          $addFields: {
+            disponible: { $subtract: ["$nb", "$totalSortie"] },
+          },
+        },
         {
           $group: {
             _id: "$detailPiece",
@@ -133,7 +165,13 @@ router.get("/allDataValidation", async (req, res) => {
 
     return res
       .status(200)
-      .json({ demande, allMecanicien, listPiece, allFournisseur, listeAVendre });
+      .json({
+        demande,
+        allMecanicien,
+        listPiece,
+        allFournisseur,
+        listeAVendre,
+      });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Erreur." });
@@ -149,39 +187,37 @@ router.post("/validerRDV", async (req, res) => {
     let facture = new Facture({ demande: idDemande, dateFacture: new Date() });
     let montantTotal = 0;
     let detailFacturesAchat = {};
-    for (let i = 0; i < listeAVendre.length; i++) { 
+    for (let i = 0; i < listeAVendre.length; i++) {
       detailFacturesAchat[listeAVendre[i].piece._id] = listeAVendre[i];
     }
     for (let i = 0; i < planning.length; i++) {
-      const sousService = await SousService.findById(planning[i].sous).populate("pieces.piece");
+      const sousService = await SousService.findById(planning[i].sous).populate(
+        "pieces.piece"
+      );
       for (let j = 0; j < sousService.pieces.length; j++) {
         if (sousService.pieces[j].etat == 1) {
           let detailFacture = new FactureDetail({
             description: "Remplacement de " + sousService.pieces[j].piece.nom,
             quantite: planning[i].qte,
-            prixUnitaire: sousService.pieces[j].piece.prixRemplacement
+            prixUnitaire: sousService.pieces[j].piece.prixRemplacement,
           });
-          montantTotal +=
-            detailFacture.prixUnitaire * detailFacture.quantite;
+          montantTotal += detailFacture.prixUnitaire * detailFacture.quantite;
           let achat = new FactureDetail({
             description: "Achat de " + sousService.pieces[j].piece.nom,
             quantite: planning[i].qte,
-            prixUnitaire: detailFacturesAchat[sousService.pieces[j].piece._id].prix,
+            prixUnitaire:
+              detailFacturesAchat[sousService.pieces[j].piece._id].prix,
           });
           montantTotal += achat.prixUnitaire * achat.quantite;
           achat.save();
           detailFacture.save();
-          facture.factureDetail.push(
-            achat
-          );
-          facture.factureDetail.push(
-            detailFacture
-          );
+          facture.factureDetail.push(achat);
+          facture.factureDetail.push(detailFacture);
         } else {
           let detailFacture = new FactureDetail({
             description: "Réparation de " + sousService.pieces[j].piece.nom,
             quantite: planning[i].qte,
-            prixUnitaire: sousService.pieces[j].piece.prixReparation
+            prixUnitaire: sousService.pieces[j].piece.prixReparation,
           });
           montantTotal += detailFacture.prixUnitaire * detailFacture.quantite;
           detailFacture.save();
@@ -230,9 +266,7 @@ router.post("/refuserRDV", async (req, res) => {
     await demande.save();
     res.status(201).json({ message: "Rendez-vous refusé." });
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Erreur lors du refus du rendez-vous." });
+    res.status(500).json({ message: "Erreur lors du refus du rendez-vous." });
     console.error(error);
   }
 });
