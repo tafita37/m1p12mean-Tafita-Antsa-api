@@ -69,11 +69,17 @@ router.post("/getPerformance", async (req, res) => {
           tauxRespectEstimation: {
             $avg: {
               $multiply: [
-                { $divide: ["$estimationTotal", "$tempsPasse"] },
-                100,
-              ],
-            },
-          }, // Taux de respect des estimations de temps
+                {
+                  $cond: [
+                    { $eq: ["$tempsPasse", 0] }, // Si tempsPasse == 0
+                    0,                            // retourne 0
+                    { $divide: ["$estimationTotal", "$tempsPasse"] } // sinon, division normale
+                  ]
+                },
+                100
+              ]
+            }
+          },           // Taux de respect des estimations de temps
           moyenneEtoiles: {
             $avg: {
               $cond: [{ $ne: ["$nbEtoile", null] }, "$nbEtoile", "$$REMOVE"],
