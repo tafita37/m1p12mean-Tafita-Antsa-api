@@ -11,11 +11,13 @@ router.get("/getPlanning", async (req, res) => {
     const skip = (page - 1) * size;
     const total = await Planning.countDocuments({
       mecanicien: idMecanicien,
-      resteAFaire: { $ne: 0 },
+      dateValidationTravail : null,
+      // resteAFaire: { $ne: 0 },
     });
     const listPlanning = await Planning.find({
       mecanicien: idMecanicien,
-      resteAFaire: { $ne: 0 },
+      dateValidationTravail : null,
+      // resteAFaire: { $ne: 0 },
     })
       .sort({ dateHeureDebut: 1 })
       .skip(skip)
