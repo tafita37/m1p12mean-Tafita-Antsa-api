@@ -23,5 +23,4 @@ app.use("/manager", verifyManager, require("./routes/managerRoute"));
 app.use("/landing", require("./routes/landingRoute")); 
 app.use("/client", verifyClient, require("./routes/clientRoute")); 
 app.use("/mecanicien", verifyMecanicien, require("./routes/mecanicienRoute")); 
-app.use("/mouvement", verifyManager, require("./routes/manager/mouvementRoutes"));
 app.listen(PORT, () => console.log(`Serveur démarré sur le port ${PORT}`)); 
