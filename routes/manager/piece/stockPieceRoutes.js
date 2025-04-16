@@ -459,6 +459,36 @@ router.get("/allDataStock", async (req, res) => {
 // Liste des mouvements d'une détail pièce
 router.get("/listeMouvement", async (req, res) => {
   try {
+    const allUser = await User.aggregate([
+      {
+        $match: {
+          dateValidation: { $ne: null }, // Filtrer uniquement les utilisateurs validés
+        },
+      },
+      {
+        $lookup: {
+          from: "roles", // Nom de la collection MongoDB des rôles
+          localField: "role",
+          foreignField: "_id",
+          as: "roleData",
+        },
+      },
+      {
+        $unwind: { path: "$roleData", preserveNullAndEmptyArrays: true }, // Déstructure roleData en objet
+      },
+      {
+        $project: {
+          _id: 1,
+          nom: 1,
+          prenom: 1,
+          email: 1,
+          fullName: {
+            $concat: ["$nom", " ", "$prenom", " (", "$roleData.nom", ")"],
+          }, // Concaténation du nom et prénom
+          role: "$roleData", // Remplace l'ID du rôle par l'objet complet
+        },
+      },
+    ]);
     const idDetailPiece = req.query.idDetailPiece;
     const detailPiece = await DetailPiece.findById(idDetailPiece)
       .populate("marque")
@@ -544,6 +574,7 @@ router.get("/listeMouvement", async (req, res) => {
       detailPiece: detailPiece,
       mouvements: listMouvements,
       nbMouvements: total,
+      users: allUser,
     });
   } catch (error) {
     console.error(error);
