@@ -459,6 +459,7 @@ router.get("/allDataStock", async (req, res) => {
 // Liste des mouvements d'une détail pièce
 router.get("/listeMouvement", async (req, res) => {
   try {
+    const allFournisseur = await Fournisseur.find();
     const allUser = await User.aggregate([
       {
         $match: {
@@ -575,6 +576,7 @@ router.get("/listeMouvement", async (req, res) => {
       mouvements: listMouvements,
       nbMouvements: total,
       users: allUser,
+      fournisseurs: allFournisseur
     });
   } catch (error) {
     console.error(error);
