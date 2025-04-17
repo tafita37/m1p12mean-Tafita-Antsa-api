@@ -152,21 +152,74 @@ router.get("/allData", async (req, res) => {
     const idClient = req.idClient;
     const listVoiture = await Voiture.find({ client: idClient });
     const allService = await Service.find().populate("sousServices");
-    const allPlanning = await Planning.find()
-      .populate({
-        path: "demande",
-        populate: {
-          path: "voiture",
-          match: { client: idClient },
+    const allPlanning = await Planning.aggregate([
+      {
+        $lookup: {
+          from: "demandes",
+          localField: "demande",
+          foreignField: "_id",
+          as: "demande",
         },
-      })
-      .populate("sousService")
-      .populate({
-        path: "mecanicien",
-        populate: {
-          path: "user",
+      },
+      { $unwind: "$demande" },
+      {
+        $lookup: {
+          from: "voitures",
+          localField: "demande.voiture",
+          foreignField: "_id",
+          as: "demande.voiture",
         },
-      });
+      },
+      { $unwind: "$demande.voiture" },
+      {
+        $match: {
+          "demande.voiture.client": idClient,
+        },
+      },
+      {
+        $lookup: {
+          from: "sousservices",
+          localField: "sousService",
+          foreignField: "_id",
+          as: "sousService",
+        },
+      },
+      { $unwind: { path: "$sousService", preserveNullAndEmptyArrays: true } },
+      {
+        $lookup: {
+          from: "mecaniciens",
+          localField: "mecanicien",
+          foreignField: "_id",
+          as: "mecanicien",
+        },
+      },
+      { $unwind: { path: "$mecanicien", preserveNullAndEmptyArrays: true } },
+      {
+        $lookup: {
+          from: "users",
+          localField: "mecanicien.user",
+          foreignField: "_id",
+          as: "mecanicien.user",
+        },
+      },
+      { $unwind: { path: "$mecanicien.user", preserveNullAndEmptyArrays: true } },
+    ]);
+    
+    // const allPlanning = await Planning.find()
+    //   .populate({
+    //     path: "demande",
+    //     populate: {
+    //       path: "voiture",
+    //       match: { client: idClient },
+    //     },
+    //   })
+    //   .populate("sousService")
+    //   .populate({
+    //     path: "mecanicien",
+    //     populate: {
+    //       path: "user",
+    //     },
+    //   });
     return res.status(200).json({ listVoiture, allService, allPlanning });
   } catch (error) {
     console.error(error);
