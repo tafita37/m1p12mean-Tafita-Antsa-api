@@ -64,7 +64,17 @@ router.post("/getPerformance", async (req, res) => {
         $group: {
           _id: "$mecanicien",
           mecanicien: { $first: "$mecanicienDetails" }, // Récupération des détails du mécanicien
-          nombreInterventions: { $sum: 1 }, // Nombre total d’interventions
+          nombreInterventionsFinis: {
+            $sum: {
+              $cond: [{ $ne: ["$dateValidationTravail", null] }, 1, 0],
+            },
+          },  
+          nombreInterventionsEnCours: {
+            $sum: {
+              $cond: [{ $eq: ["$dateValidationTravail", null] }, 1, 0],
+            },
+          },                 
+          // nombreInterventions: { $sum: 1 }, // Nombre total d’interventions
           delaiMoyen: { $avg: "$tempsPasse" }, // Délai moyen de réalisation
           tauxRespectEstimation: {
             $avg: {
