@@ -75,21 +75,35 @@ router.post("/getPerformance", async (req, res) => {
             },
           },                 
           // nombreInterventions: { $sum: 1 }, // Nombre total d’interventions
-          delaiMoyen: { $avg: "$tempsPasse" }, // Délai moyen de réalisation
-          tauxRespectEstimation: {
+          delaiMoyen: {
             $avg: {
-              $multiply: [
-                {
-                  $cond: [
-                    { $eq: ["$tempsPasse", 0] }, // Si tempsPasse == 0
-                    0,                            // retourne 0
-                    { $divide: ["$estimationTotal", "$tempsPasse"] } // sinon, division normale
-                  ]
-                },
-                100
+              $cond: [
+                { $ne: ["$dateValidationTravail", null] },
+                "$tempsPasse",
+                null  // Exclu de la moyenne
               ]
             }
-          },           // Taux de respect des estimations de temps
+          },
+          tauxRespectEstimation: {
+            $avg: {
+              $cond: [
+                { $ne: ["$dateValidationTravail", null] },  // Filtre
+                {
+                  $multiply: [
+                    {
+                      $cond: [
+                        { $eq: ["$tempsPasse", 0] },
+                        0,
+                        { $divide: ["$estimationTotal", "$tempsPasse"] },
+                      ],
+                    },
+                    100,
+                  ],
+                },
+                null,  // Exclut les nulls du calcul de la moyenne
+              ],
+            },
+          },
           moyenneEtoiles: {
             $avg: {
               $cond: [{ $ne: ["$nbEtoile", null] }, "$nbEtoile", "$$REMOVE"],
