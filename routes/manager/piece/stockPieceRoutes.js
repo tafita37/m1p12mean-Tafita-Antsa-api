@@ -24,10 +24,15 @@ router.post("/insert", async (req, res) => {
       });
     }
     const idUser = req.body.idUser;
-    const user = await User.findById(idUser);
+    const user = await User.findById(idUser).populate("role");
     if (user.dateValidation == null) {
       return res.status(500).json({
         message: "Veuillez d'abord valider l'inscription de cet utilisateur.",
+      });
+    }
+    if (user.dateSuppression != null) {
+      return res.status(500).json({
+        message: "L'utilisateur a été supprimée.",
       });
     }
     const idFournisseur = req.body.idFournisseur;
@@ -35,6 +40,12 @@ router.post("/insert", async (req, res) => {
     var nb = req.body.nb;
     const isEntree = req.body.isEntree;
     const dateMouvement = req.body.dateMouvement;
+    const nbMouvementAvant=await Mouvement.countDocuments({detailPiece : detailPiece._id, dateMouvement : {$gt : dateMouvement}});
+    if(nbMouvementAvant!=0) {
+      return res.status(500).json({
+        message: "Vous ne pouvez plus faire de nouveau mouvement car un mouvement a déjà été effectué après.",
+      });
+    }
     const mouvementInsert = new Mouvement({
       detailPiece: detailPiece._id,
       utilisateur: idUser,
@@ -46,75 +57,160 @@ router.post("/insert", async (req, res) => {
     if (dateMouvement) {
       mouvementInsert.dateMouvement = new Date(dateMouvement);
     }
-      if (!isEntree) {
-        const listMouvementEntree = await Mouvement.aggregate([
-          {
-            $match: {
-              isEntree: true,
-              detailPiece: detailPiece._id,
-              $expr: { $lt: ["$sortie", "$nb"] },
+    if (!isEntree) {
+      const listMouvementEntree = await Mouvement.aggregate([
+        {
+          $match: {
+            dateMouvement: { $lte: mouvementInsert.dateMouvement },
+            isEntree: true,
+            detailPiece: detailPiece._id,
+          },
+        },
+        {
+          $addFields: {
+            sortieFiltree: {
+              $filter: {
+                input: "$sortie",
+                as: "s",
+                cond: {
+                  $lte: ["$$s.dateMouvement", mouvementInsert.dateMouvement],
+                },
+              },
             },
           },
-          {
-            $sort: { dateMouvement: -1 }, // Trie directement en base de données par dateMouvement décroissant
-          },
-        ]);
-        const resteStock = await Mouvement.aggregate([
-          {
-            $match: {
-              isEntree: true,
-              detailPiece: detailPiece._id,
-              $expr: { $lt: ["$sortie", "$nb"] }, // Filtre les entrées où sortie < nb
+        },
+        {
+          $addFields: {
+            totalSortie: {
+              $sum: "$sortieFiltree.nb",
             },
           },
-          {
-            $group: {
-              _id: null, // Pas besoin de regrouper par un champ spécifique
-              totalDisponible: { $sum: { $subtract: ["$nb", "$sortie"] } }, // Calcule nb - sortie et fait la somme
+        },
+        {
+          $match: {
+            $expr: { $lt: ["$totalSortie", "$nb"] }, // Comparaison entre total des sorties et nb
+          },
+        },
+        {
+          $sort: { dateMouvement: -1 }, // Trie par dateMouvement décroissante
+        },
+      ]);
+      const resteStock = await Mouvement.aggregate([
+        {
+          $match: {
+            dateMouvement: { $lte: mouvementInsert.dateMouvement },
+            isEntree: true,
+            detailPiece: detailPiece._id,
+          },
+        },
+        {
+          $addFields: {
+            sortieFiltree: {
+              $filter: {
+                input: "$sortie",
+                as: "s",
+                cond: {
+                  $lte: ["$$s.dateMouvement", mouvementInsert.dateMouvement],
+                },
+              },
             },
           },
-        ]);
-        if (resteStock.length == 0 || resteStock[0].totalDisponible < nb) {
-          return res.status(500).json({ message: "Stock insuffisant." });
-        }
-        await mouvementInsert.save();
-        for (const mouvement of listMouvementEntree) {
-          if (nb == 0) break;
+        },
+        {
+          $addFields: {
+            totalSortie: {
+              $sum: "$sortieFiltree.nb",
+            },
+          },
+        },
+        {
+          $addFields: {
+            disponible: {
+              $subtract: ["$nb", "$totalSortie"],
+            },
+          },
+        },
+        {
+          $match: {
+            disponible: { $gt: 0 },
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            totalDisponible: { $sum: "$disponible" },
+          },
+        },
+      ]);
 
-          if (mouvement.nb - mouvement.sortie != 0) {
-            var reste = mouvement.nb - mouvement.sortie;
-            var mouvementDetail = new MouvementDetail({
-              mouvementEntree: mouvement._id,
-              mouvementSortie: mouvementInsert._id,
-            });
-            if (nb <= reste) {
-              mouvementDetail.nb = nb;
-              mouvement.sortie += nb;
-              nb = 0;
-            } else {
-              mouvement.sortie = mouvement.nb;
-              nb -= reste;
-              mouvementDetail.nb = reste;
-            }
-            move = await Mouvement.findById(mouvement._id);
-            move.detailPiece = mouvement.detailPiece;
-            move.utilisateur = mouvement.utilisateur;
-            move.fournisseur = mouvement.fournisseur;
-            move.prix = mouvement.prix;
-            move.nb = mouvement.nb;
-            move.sortie = mouvement.sortie;
-            move.isEntree = mouvement.isEntree;
-            await move.save();
-            mouvementDetail.save();
-          }
-        }
-      } else {
-        await mouvementInsert.save();
+      if (resteStock.length === 0 || resteStock[0].totalDisponible < nb) {
+        return res.status(500).json({ message: "Stock insuffisant." });
       }
+
+      await mouvementInsert.save();
+      for (const mouvement of listMouvementEntree) {
+        if (nb === 0) break;
+
+        // Calculer la somme des sorties valides (avant la date du mouvement de sortie)
+        const totalSortie = (mouvement.sortie || [])
+          .filter(
+            (s) =>
+              new Date(s.dateMouvement) <=
+              new Date(mouvementInsert.dateMouvement)
+          )
+          .reduce((acc, s) => acc + s.nb, 0);
+
+        const disponible = mouvement.nb - totalSortie;
+
+        if (disponible > 0) {
+          const mouvementDetail = new MouvementDetail({
+            mouvementEntree: mouvement._id,
+            mouvementSortie: mouvementInsert._id,
+          });
+
+          let quantiteSortie = 0;
+
+          if (nb <= disponible) {
+            quantiteSortie = nb;
+            nb = 0;
+          } else {
+            quantiteSortie = disponible;
+            nb -= disponible;
+          }
+
+          mouvementDetail.nb = quantiteSortie;
+
+          // Mise à jour du mouvement d'entrée : ajouter une sortie
+          await Mouvement.findByIdAndUpdate(
+            mouvement._id,
+            {
+              $push: {
+                sortie: {
+                  nb: quantiteSortie,
+                  dateMouvement: mouvementInsert.dateMouvement,
+                },
+              },
+            },
+            { new: true }
+          );
+
+          await mouvementDetail.save();
+        }
+      }
+    } else {
+      if (user.role.niveau == 1) {
+        return res.status(500).json({
+          message: "Un client ne peut pas faire d'ajout de stock.",
+        });
+      }
+      await mouvementInsert.save();
+    }
     return res.status(201).json({ message: "Mouvement créer." });
   } catch (error) {
-      console.error(error);
-    return res.status(500).json({ message: "Erreur lors de l'insertion de pièce." });
+    console.error(error);
+    return res
+      .status(500)
+      .json({ message: "Erreur lors de l'insertion de pièce." });
   }
 });
 
@@ -122,10 +218,11 @@ router.post("/insert", async (req, res) => {
 router.get("/allDataStock", async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    const size = 20;
+    const size = 10;
     const skip = (page - 1) * size;
     const filterDate = new Date(req.query.date);
-    
+    console.log(filterDate, "filtre", req.query.date);
+
     const result = await Mouvement.aggregate([
       {
         $addFields: {
@@ -177,6 +274,18 @@ router.get("/allDataStock", async (req, res) => {
         },
       },
       {
+        $addFields: {
+          // Filtrage de la sortie pour ne garder que les entrées dont dateMouvement <= filterDate
+          sortieFiltree: {
+            $filter: {
+              input: "$sortie",
+              as: "s",
+              cond: { $lte: ["$$s.dateMouvement", filterDate] },
+            },
+          },
+        },
+      },
+      {
         $group: {
           _id: "$detailPiece._id",
           detailPiece: { $first: "$detailPiece" },
@@ -194,7 +303,10 @@ router.get("/allDataStock", async (req, res) => {
               $cond: {
                 if: { $eq: ["$isEntree", true] },
                 then: {
-                  $multiply: ["$prix", { $subtract: ["$nb", "$sortie"] }],
+                  $multiply: [
+                    "$prix",
+                    { $subtract: ["$nb", { $sum: "$sortieFiltree.nb" }] },
+                  ],
                 },
                 else: 0,
               },
@@ -204,7 +316,7 @@ router.get("/allDataStock", async (req, res) => {
             $sum: {
               $cond: {
                 if: { $eq: ["$isEntree", true] },
-                then: { $subtract: ["$nb", "$sortie"] },
+                then: { $subtract: ["$nb", { $sum: "$sortieFiltree.nb" }] },
                 else: 0,
               },
             },
@@ -226,6 +338,7 @@ router.get("/allDataStock", async (req, res) => {
       { $skip: skip },
       { $limit: size },
     ]);
+    
 
     const totalCountPipeline = await Mouvement.aggregate([
       {
@@ -272,12 +385,25 @@ router.get("/allDataStock", async (req, res) => {
       },
       { $unwind: { path: "$marque", preserveNullAndEmptyArrays: true } },
       {
+        $addFields: {
+          // Filtrage de la sortie pour ne garder que les entrées dont dateMouvement <= filterDate
+          sortieFiltree: {
+            $filter: {
+              input: "$sortie",
+              as: "s",
+              cond: { $lte: ["$$s.dateMouvement", filterDate] },
+            },
+          },
+        },
+      },
+      {
         $group: {
           _id: "$detailPiece._id",
         },
       },
       { $count: "total" },
     ]);
+    
 
     const total =
       totalCountPipeline.length > 0 ? totalCountPipeline[0].total : 0;
@@ -285,6 +411,11 @@ router.get("/allDataStock", async (req, res) => {
     const allMarque = await Marque.find();
     // const allUser = await User.find().select("-mdp");
     const allUser = await User.aggregate([
+      {
+        $match: {
+          dateValidation: { $ne: null }, // Filtrer uniquement les utilisateurs validés
+        },
+      },
       {
         $lookup: {
           from: "roles", // Nom de la collection MongoDB des rôles
@@ -327,6 +458,37 @@ router.get("/allDataStock", async (req, res) => {
 
 router.get("/listeMouvement", async (req, res) => {
   try {
+    const allFournisseur = await Fournisseur.find();
+    const allUser = await User.aggregate([
+      {
+        $match: {
+          dateValidation: { $ne: null }, // Filtrer uniquement les utilisateurs validés
+        },
+      },
+      {
+        $lookup: {
+          from: "roles", // Nom de la collection MongoDB des rôles
+          localField: "role",
+          foreignField: "_id",
+          as: "roleData",
+        },
+      },
+      {
+        $unwind: { path: "$roleData", preserveNullAndEmptyArrays: true }, // Déstructure roleData en objet
+      },
+      {
+        $project: {
+          _id: 1,
+          nom: 1,
+          prenom: 1,
+          email: 1,
+          fullName: {
+            $concat: ["$nom", " ", "$prenom", " (", "$roleData.nom", ")"],
+          }, // Concaténation du nom et prénom
+          role: "$roleData", // Remplace l'ID du rôle par l'objet complet
+        },
+      },
+    ]);
     const idDetailPiece = req.query.idDetailPiece;
     const detailPiece = await DetailPiece.findById(idDetailPiece)
       .populate("marque")
@@ -341,7 +503,6 @@ router.get("/listeMouvement", async (req, res) => {
         ? new Date(req.query.dateDebut)
         : null;
     const typeMouvement = parseInt(req.query.typeMouvement) || 0; 
-    
 
     const page = parseInt(req.query.page) || 1;
     const size = 20;
@@ -408,14 +569,13 @@ router.get("/listeMouvement", async (req, res) => {
 
     // Comptage des documents
     const total = await Mouvement.countDocuments(conditions);
-
-    return res
-      .status(200)
-      .json({
-        detailPiece: detailPiece,
-        mouvements: listMouvements,
-        nbMouvements: total,
-      });
+    return res.status(200).json({
+      detailPiece: detailPiece,
+      mouvements: listMouvements,
+      nbMouvements: total,
+      users: allUser,
+      fournisseurs: allFournisseur
+    });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Erreur." });

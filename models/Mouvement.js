@@ -14,7 +14,16 @@ const mouvementSchema = new mongoose.Schema({
   fournisseur: { type: mongoose.Schema.Types.ObjectId, ref: "Fournisseur" },
   prix: { type: Number, required: true },
   nb: { type: Number, required: true },
-  sortie: { type: Number, default : 0},
+  sortie: {
+    type: [
+      {
+        nb: { type: Number, default: 0 },
+        dateMouvement: { type: Date, default: Date.now }
+      }
+    ],
+    default: []
+  },  
+  // sortie: { type: Number, default : 0},
   isEntree: { type: Boolean, default : 0},
   dateMouvement: { type: Date, default: Date.now }
 });

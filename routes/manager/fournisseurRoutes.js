@@ -52,7 +52,7 @@ router.post("/delete", async (req, res) => {
 router.get("/allFournisseur", async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    const size = 20;
+    const size = 10;
     const skip = (page - 1) * size;
     const total = await Fournisseur.countDocuments();
     const listFournisseur = await Fournisseur.find()

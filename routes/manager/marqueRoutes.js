@@ -46,8 +46,7 @@ router.post("/delete", async (req, res) => {
 
     if (count > 0) {
       return res.status(400).json({
-        message:
-          "Impossible de supprimer ces marques.",
+        message: "Impossible de supprimer ces marques.",
       });
     }
 
@@ -63,7 +62,7 @@ router.post("/delete", async (req, res) => {
 router.get("/allMarque", async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    const size = 20;
+    const size = 10;
     const skip = (page - 1) * size;
     const total = await Marque.countDocuments();
     const listMarque = await Marque.find()

@@ -70,7 +70,7 @@ router.post("/registerUserClient", async (req, res) => {
 // Route de connexion client
 router.post("/loginUserClient", async (req, res) => {
   const { email, mdp } = req.body;
-  const users = await User.findOne({ email }).populate("role");
+  const users = await User.findOne({ email, dateSuppression : null }).populate("role");
   if (!users) return res.status(400).json({ message: "Utilisateur non trouvé" });
   if (users.role.niveau!=1) return res.status(400).json({ message: "Vous n'êtes pas client" });
   const isMatch = await bcrypt.compare(mdp, users.mdp);
@@ -92,7 +92,9 @@ router.post("/loginUserClient", async (req, res) => {
 // Route de connexion mecanicien
 router.post("/loginUserMecanicien", async (req, res) => {
   const { email, mdp } = req.body;
-  const users = await User.findOne({ email }).populate("role");
+  const users = await User.findOne({ email, dateSuppression: null }).populate(
+    "role"
+  );
   if (!users) return res.status(400).json({ message: "Utilisateur non trouvé" });
   if (users.role.niveau!=10) return res.status(400).json({ message: "Vous n'êtes pas mécanicien" });
   const isMatch = await bcrypt.compare(mdp, users.mdp);
@@ -161,7 +163,7 @@ router.post("/registerUserMecanicien", async (req, res) => {
     });
     await mecanicien.save();
     const employeType = await TypeClient.findOne({
-      nom: { $regex: "^Employé$", $options: "i" },
+      nom: { $regex: "^Elite$", $options: "i" },
     });
     const newClient = new Client({
       user: newUser._id,

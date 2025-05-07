@@ -34,6 +34,10 @@ const UserSchema = new mongoose.Schema(
       type: Date,
       default: null, // Champ nullable par défaut
     },
+    dateSuppression: {
+      type: Date,
+      default: null, // Champ nullable par défaut
+    },
   },
   { timestamps: true }
 );
@@ -41,6 +45,14 @@ const UserSchema = new mongoose.Schema(
 // Définir un champ virtuel pour les clients
 UserSchema.virtual("client", {
   ref: "Client",
+  localField: "_id",
+  foreignField: "user",
+  justOne: true // Mettre à false si un utilisateur peut avoir plusieurs clients
+});
+
+// Définir un champ virtuel pour les mécaniciens
+UserSchema.virtual("mecanicien", {
+  ref: "Mecanicien",
   localField: "_id",
   foreignField: "user",
   justOne: true // Mettre à false si un utilisateur peut avoir plusieurs clients
