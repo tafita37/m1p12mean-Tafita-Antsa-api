@@ -442,7 +442,7 @@ router.get("/allDataStock", async (req, res) => {
     ]);
 
     const allFournisseur = await Fournisseur.find();
-    res.status(200).json({
+    return res.status(200).json({
       stock: result,
       nbStock: total,
       pieces: allPiece,
@@ -451,12 +451,11 @@ router.get("/allDataStock", async (req, res) => {
       fournisseurs: allFournisseur,
     });
   } catch (error) {
-    res.status(500).json({ message: "Erreur." });
     console.error(error);
+    return res.status(500).json({ message: "Erreur." });
   }
 });
 
-// Liste des mouvements d'une détail pièce
 router.get("/listeMouvement", async (req, res) => {
   try {
     const allFournisseur = await Fournisseur.find();
@@ -496,14 +495,14 @@ router.get("/listeMouvement", async (req, res) => {
       .populate("piece");
 
     const dateFin =
-      req.query.dateFin && req.query.dateFin != "null"
+      req.query.dateFin && req.query.dateFin !="null"
         ? new Date(req.query.dateFin)
         : null;
     const dateDebut =
       req.query.dateDebut && req.query.dateDebut != "null"
         ? new Date(req.query.dateDebut)
         : null;
-    const typeMouvement = parseInt(req.query.typeMouvement) || 0;
+    const typeMouvement = parseInt(req.query.typeMouvement) || 0; 
 
     const page = parseInt(req.query.page) || 1;
     const size = 20;
@@ -570,7 +569,6 @@ router.get("/listeMouvement", async (req, res) => {
 
     // Comptage des documents
     const total = await Mouvement.countDocuments(conditions);
-
     return res.status(200).json({
       detailPiece: detailPiece,
       mouvements: listMouvements,
@@ -583,5 +581,6 @@ router.get("/listeMouvement", async (req, res) => {
     return res.status(500).json({ message: "Erreur." });
   }
 });
+
 
 module.exports = router;

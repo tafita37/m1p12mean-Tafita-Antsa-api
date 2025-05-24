@@ -29,12 +29,10 @@ router.get("/allUserNotValider", async (req, res) => {
       ]);
 
     const listTypeClient = await TypeClient.find();
-    res
-      .status(201)
-      .json({ user: existingUser, typeClients: listTypeClient, nbUser: total });
+    return res.status(201).json({ user: existingUser, typeClients: listTypeClient, nbUser : total });
   } catch (error) {
-    res.status(500).json({ message: "Erreur." });
     console.error(error);
+    return res.status(500).json({ message: "Erreur." });
   }
 });
 
@@ -52,11 +50,7 @@ router.post("/validerInscription", async (req, res) => {
     }
     if (existingUser.role.niveau == 10) {
       if (!dateEmbauche) {
-        res
-          .status(500)
-          .json({
-            message: "Veuillez indiquer la date d'embauche du mécanicien.",
-          });
+        return res.status(500).json({ message: "Veuillez indiquer la date d'embauche du mécanicien." });
       }
       const existingMecanicien = await Mecanicien.findOne({
         user: existingUser._id,
@@ -67,9 +61,11 @@ router.post("/validerInscription", async (req, res) => {
       existingMecanicien.save();
     } else {
       if (!typeClient) {
-        res.status(500).json({
-          message: "Veuillez indiquer de quel type de client il s'agit.",
-        });
+        return res
+          .status(500)
+          .json({
+            message: "Veuillez indiquer de quel type de client il s'agit.",
+          });
       }
       const existingClient = await Client.findOne({
         user: existingUser._id,
@@ -80,10 +76,10 @@ router.post("/validerInscription", async (req, res) => {
       existingUser.save();
       existingClient.save();
     }
-    res.status(201).json({ message: "Inscription validée." });
+    return res.status(201).json({message : "Inscription validée."});
   } catch (error) {
-    res.status(500).json({ message: "Erreur." });
     console.error(error);
+    return res.status(500).json({ message: "Erreur." });
   }
 });
 
@@ -100,14 +96,15 @@ router.post("/refuserInscription", async (req, res) => {
     await existingUser.save();
     return res.status(200).json({ message: "Inscription refusée." });
   } catch (error) {
-    res.status(500).json({ message: "Erreur." });
     console.error(error);
+    return res.status(500).json({ message: "Erreur." });
   }
 });
 
 router.use("/piece", require("./manager/pieceRoutes"));
 router.use("/marque", require("./manager/marqueRoutes"));
 router.use("/fournisseur", require("./manager/fournisseurRoutes"));
+router.use("/stat", require("./manager/statRoutes"));
 router.use("/user", require("./manager/userRoutes"));
 router.use("/service", require("./manager/serviceRoutes"));
 router.use("/rdv", require("./manager/rdvRoutes"));

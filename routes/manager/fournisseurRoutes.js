@@ -7,12 +7,10 @@ router.post("/insert", async (req, res) => {
   try {
     const fournisseur = new Fournisseur(req.body);
     await fournisseur.save();
-    res.status(201).json({ message: "Fournisseur inséré." });
+    return res.status(201).json({ message: "Fournisseur inséré." });
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Erreur lors de l'insertion de fournisseur." });
     console.error(error);
+    return res.status(500).json({ message: "Erreur lors de l'insertion de fournisseur." });
   }
 });
 
@@ -28,12 +26,10 @@ router.post("/update", async (req, res) => {
     fournisseur.contact = contact;
     fournisseur.email = email;
     await fournisseur.save();
-    res.status(201).json({ message: "Fournisseur modifié." });
+    return res.status(201).json({ message: "Fournisseur modifié." });
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Erreur lors de la modification de fournisseur." });
     console.error(error);
+    return res.status(500).json({ message: "Erreur lors de la modification de fournisseur." });
   }
 });
 
@@ -45,12 +41,10 @@ router.post("/delete", async (req, res) => {
       return res.status(400).json({ message: "Aucun fournisseur fourni." });
     }
     await Fournisseur.deleteMany({ _id: { $in: idFournisseurs } });
-    res.status(201).json({ message: "Fournisseur(s) supprimé(s)." });
+    return res.status(201).json({ message: "Fournisseur(s) supprimé(s)." });
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Erreur lors de la suppression de fournisseur." });
     console.error(error);
+    return res.status(500).json({ message: "Erreur lors de la suppression de fournisseur." });
   }
 });
 
@@ -61,13 +55,13 @@ router.get("/allFournisseur", async (req, res) => {
     const size = 10;
     const skip = (page - 1) * size;
     const total = await Fournisseur.countDocuments();
-    const listFournisseur = await Fournisseur.find().skip(skip).limit(size);
-    res
-      .status(200)
-      .json({ fournisseur: listFournisseur, nbFournisseur: total });
+    const listFournisseur = await Fournisseur.find()
+      .skip(skip)
+      .limit(size);
+    return res.status(200).json({ fournisseur: listFournisseur, nbFournisseur: total });
   } catch (error) {
-    res.status(500).json({ message: "Erreur." });
     console.error(error);
+    return res.status(500).json({ message: "Erreur." });
   }
 });
 

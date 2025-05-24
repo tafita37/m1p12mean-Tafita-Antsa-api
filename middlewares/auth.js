@@ -25,8 +25,8 @@ const verifyManager = function (req, res, next) {
     }
     next();
   } catch (err) {
-    res.status(400).json({ message: "Token invalide ou expiré" });
     console.error(err);
+    return res.status(400).json({ message: "Token invalide ou expiré" });
   }
 };
 

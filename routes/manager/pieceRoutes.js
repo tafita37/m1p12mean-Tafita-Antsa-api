@@ -70,12 +70,12 @@ router.post("/delete", async (req, res) => {
     }
 
     await Piece.deleteMany({ _id: { $in: idPieces } });
-    res.status(200).json({ message: "Pièces supprimées avec succès." });
+    return res.status(200).json({ message: "Pièces supprimées avec succès." });
   } catch (error) {
-    res
+    console.error(error);
+    return res
       .status(500)
       .json({ message: "Erreur lors de la suppression des pièces." });
-    console.error(error);
   }
 });
 
@@ -87,10 +87,10 @@ router.get("/allPiece", async (req, res) => {
     const skip = (page - 1) * size;
     const total = await Piece.countDocuments();
     const listPiece = await Piece.find().skip(skip).limit(size);
-    res.status(200).json({ pieces: listPiece, nbPiece: total });
+    return res.status(200).json({ pieces: listPiece, nbPiece: total });
   } catch (error) {
-    res.status(500).json({ message: "Erreur." });
     console.error(error);
+    return res.status(500).json({ message: "Erreur." });
   }
 });
 

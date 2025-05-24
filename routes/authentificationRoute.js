@@ -60,10 +60,10 @@ router.post("/registerUserClient", async (req, res) => {
     await newUser.save();
     const client = new Client({ user: newUser._id, typeClient: typeClient._id });
     await client.save();
-    res.status(201).json({ message: "Votre compte a été créer. Veuillez attendre la validation."});
+    return res.status(201).json({ message: "Votre compte a été créer. Veuillez attendre la validation."});
   } catch (error) {
-    res.status(500).json({ message: "Erreur lors de l'inscription." });
     console.error(error);
+    return res.status(500).json({ message: "Erreur lors de l'inscription." });
   }
 });
 
@@ -138,10 +138,10 @@ router.post("/newManager", async (req, res) => {
       return res.status(400).json({ message: "Il y a déjà un manager." });
     const newManager = new Manager(req.body);
     await newManager.save();
-    res.status(201).json({ message: "Manager créé avec succès."});
+    return res.status(201).json({ message: "Manager créé avec succès."});
   } catch (error) {
-    res.status(500).json({ message: "Erreur lors de l'inscription." });
     console.error(error);
+    return res.status(500).json({ message: "Erreur lors de l'inscription." });
   }
 });
 
@@ -170,13 +170,13 @@ router.post("/registerUserMecanicien", async (req, res) => {
       typeClient: employeType._id,
     });
     await newClient.save();
-    res
+    return res
       .status(201)
       .json({
         message: "Votre compte a été créer. Veuillez attendre la validation.",
       });
   } catch (error) {
-    res
+    return res
       .status(500)
       .json({ message: "Erreur lors de la création de mécanicien." });
     console.error(error);
